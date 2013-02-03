@@ -1,5 +1,5 @@
 
-# raw-socket - [homepage][homepage]
+# net-ping - [homepage][homepage]
 
 This module implements ICMP Echo (ping) support for [Node.js][nodejs].
 
@@ -15,14 +15,12 @@ A ping session can then be created to ping many hosts:
 
     var session = ping.createSession ();
 
-    for (var i = 0; i < targets.length; i++) {
-        session.pingHost (targets[i], function (error, target) {
-            if (error)
-                console.log (target + ": " + error.toString ());
-            else
-                console.log (target + ": Alive");
-        });
-    }
+    session.pingHost (target, function (error, target) {
+        if (error)
+            console.log (target + ": " + error.toString ());
+        else
+            console.log (target + ": Alive");
+    });
 
 [homepage]: http://re-tool.org "Homepage"
 [nodejs]: http://nodejs.org "Node.js"
