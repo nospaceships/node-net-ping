@@ -1,6 +1,6 @@
 {
   "name": "net-ping",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Ping many hosts at once.",
   "main": "index.js",
   "directories": {
@@ -22,6 +22,8 @@
   "keywords": [
     "echo",
     "icmp",
+    "monitor",
+    "monitoring",
   	 "net",
   	 "network",
     "ping"
