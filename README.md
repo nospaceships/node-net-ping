@@ -9,7 +9,7 @@ This module is installed using [node package manager (npm)][npm]:
 
 It is loaded using the `require()` function:
 
-    var raw = require ("net-ping");
+    var ping = require ("net-ping");
 
 A ping session can then be created to ping many hosts:
 
@@ -25,6 +25,37 @@ A ping session can then be created to ping many hosts:
 [homepage]: http://re-tool.org "Homepage"
 [nodejs]: http://nodejs.org "Node.js"
 [npm]: https://npmjs.org/ "npm"
+
+# Error Handling
+
+Each request exposed by this module (currently only `pingHost()`) requires a
+mandatory callback function.  The callback function is executed once the
+request has completed.
+
+A request can complete in a number of ways, for example the request timed out,
+a response was received from a host other than the targeted host (i.e. a
+gateway) or an error occurred when sending the request.
+
+All errors excluding a timed out error are passed to the callback function as
+an instance of the `Error` object.  For timed out errors the error passed to
+the callback function will be an instance of the `ping.RequestTimedOutError`
+object, with the exposed `message` attribute set to `Request timed out`.
+
+This makes it easy to determine if a host responded or whether an error
+occurred:
+
+    session.pingHost ("1.2.3.4", function (error, target) {
+        if (error)
+            if (error instanceof ping.RequestTimedOutError)
+                console.log (target + ": Not alive");
+            else
+                console.log (target + ": " + error.toString ());
+        else
+            console.log (target + ": Alive");
+    });
+
+The `Session` class will emit an `error` event for any other error not
+directly associated with a request.
 
 # Using This Module
 
@@ -48,7 +79,7 @@ The `createSession()` function instantiates and returns an instance of the
 The optional `options` parameter is an object, and can contain the following
 items:
 
- * `retries` - Number of times to re-send a request, defaults to `1`
+ * `retries` - Number of times to re-send a ping requests, defaults to `1`
  * `timeout` - Number of milliseconds to wait for a response before re-trying
    or failing, defaults to `2000`
 
@@ -93,17 +124,17 @@ with the underlying raw socket, the session is then closed:
 The `close()` method closes the underlying raw socket, and cancels all
 outstanding requsts.
 
-The calback function for each outstanding request will be called.  The error
-parameter will be an instance of the `Error` class, and the `message`
+The calback function for each outstanding ping requests will be called.  The
+error parameter will be an instance of the `Error` class, and the `message`
 attribute set to `Socket forcibly closed`.
 
 The sessoin can be re-used simply by submitting more ping requests, a new raw
-socket will be created to serve the new requests.  This is a way in which to
-clear outstanding requests.
+socket will be created to serve the new ping requests.  This is a way in which
+to clear outstanding requests.
 
 The following example submits a ping request and prints the target which
 successfully responded first, and then closes the session which will clear the
-other outstanding requests.
+other outstanding ping requests.
 
     var targets = ["1.1.1.1", "2.2.2.2", "3.3.3.3"];
     
@@ -118,13 +149,13 @@ other outstanding requests.
 
 ## session.pingHost (target, callback)
 
-The `pingHost()` method sends an ICMP echo request to a remote host.
+The `pingHost()` method sends a ping request to a remote host.
 
 The `target` parameter is the dotted quad formatted IP address of the target
 host.
 
-The `callback` function is called once the request is complete.  The following
-arguments will be passed to the `callback` function:
+The `callback` function is called once the ping requests is complete.  The
+following arguments will be passed to the `callback` function:
 
  * `error` - Instance of the `Error` class or a sub-class, or `null` if no
    error occurred
@@ -156,6 +187,13 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 ## Version 1.0.0 - 03/02/2013
 
  * Initial release
+
+## Version 1.0.1 - 04/02/2013
+
+ * Minor corrections to the README.md
+ * Add note to README.md about error handling
+ * Timed out errors are now instances of the `ping.RequestTimedOutError`
+   object
 
 # Roadmap
 
