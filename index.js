@@ -5,6 +5,12 @@ var net = require ("net");
 var raw = require ("raw-socket");
 var util = require ("util");
 
+function RequestTimedOutError (message) {
+	this.name = "RequestTimedOutError";
+	this.message = message;
+}
+util.inherits (RequestTimedOutError, Error);
+
 function Session (options) {
 	this.retries = (options && options.retries) ? options.retries : 1;
 	this.timeout = (options && options.timeout) ? options.timeout : 2000;
@@ -121,7 +127,8 @@ Session.prototype.onTimeout = function (req) {
 		req.retries--;
 		this.send (req);
 	} else {
-		req.callback (new Error ("Request timed out"), req.target);
+		req.callback (new RequestTimedOutError ("Request timed out"),
+				req.target);
 		this.reqRemove (req.id);
 	}
 };
