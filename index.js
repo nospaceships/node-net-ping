@@ -1,5 +1,4 @@
 
-var dns = require ("dns");
 var events = require ("events");
 var net = require ("net");
 var raw = require ("raw-socket");
@@ -146,8 +145,7 @@ Session.prototype.pingHost = function (target, callback) {
 		retries: this.retries,
 		timeout: this.timeout,
 		callback: callback,
-		target: target,
-		error: null
+		target: target
 	};
 	req.buffer = this.toBuffer (req);
 	
