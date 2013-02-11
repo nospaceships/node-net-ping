@@ -193,3 +193,5 @@ exports.createSession = function (options) {
 };
 
 exports.Session = Session;
+
+exports.RequestTimedOutError = RequestTimedOutError;

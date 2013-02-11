@@ -195,6 +195,10 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
  * Timed out errors are now instances of the `ping.RequestTimedOutError`
    object
 
+## Version 1.0.2 - 11/02/2013
+
+ * The RequestTimedOutError class is not being exported
+
 # Roadmap
 
 In no particular order:
