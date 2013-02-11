@@ -203,6 +203,7 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 
 In no particular order:
 
+ * Support pinging hostnames
  * Helper methods such as `pingSubnet()`, `pingBlock()` and `pingRange()`
  * Support IPv6
 
