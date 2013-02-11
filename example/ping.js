@@ -25,7 +25,10 @@ session.on ("error", function (error) {
 for (var i = 0; i < targets.length; i++) {
 	session.pingHost (targets[i], function (error, target) {
 		if (error)
-			console.log (target + ": " + error.toString ());
+			if (error instanceof ping.RequestTimedOutError)
+				console.log (target + ": Not alive");
+			else
+				console.log (target + ": " + error.toString ());
 		else
 			console.log (target + ": Alive");
 	});
