@@ -4,6 +4,21 @@ var net = require ("net");
 var raw = require ("raw-socket");
 var util = require ("util");
 
+function _expandConstantObject (object) {
+	var keys = [];
+	for (key in object)
+		keys.push (key);
+	for (var i = 0; i < keys.length; i++)
+		object[object[keys[i]]] = parseInt (keys[i]);
+}
+
+var NetworkProtocol = {
+	1: "IPv4",
+	2: "IPv6"
+};
+
+_expandConstantObject (NetworkProtocol);
+
 function RequestTimedOutError (message) {
 	this.name = "RequestTimedOutError";
 	this.message = message;
@@ -13,6 +28,11 @@ util.inherits (RequestTimedOutError, Error);
 function Session (options) {
 	this.retries = (options && options.retries) ? options.retries : 1;
 	this.timeout = (options && options.timeout) ? options.timeout : 2000;
+	
+	this.addressFamily = (options && options.networkProtocol
+				&& options.networkProtocol == NetworkProtocol.IPv6)
+			? raw.AddressFamily.IPv6
+			: raw.AddressFamily.IPv4;
 	
 	this.socket = null;
 	
@@ -40,12 +60,22 @@ Session.prototype.flush = function (error) {
 Session.prototype.getSocket = function () {
 	if (this.socket)
 		return this.socket;
+
+	var protocol = this.addressFamily == raw.AddressFamily.IPv6
+			? raw.Protocol.ICMPv6
+			: raw.Protocol.ICMP;
+
 	var me = this;
 	var options = {
-		protocol: raw.Protocol.ICMP,
-		generateChecksums: true,
-		checksumOffset: 2
+		addressFamily: this.addressFamily,
+		protocol: protocol
 	};
+	
+	if (this.addressFamily != raw.AddressFamily.IPv6) {
+		options.generateChecksums = true;
+		options.checksumOffset = 2;
+	}
+	
 	this.socket = raw.createSocket (options);
 	this.socket.on ("close", this.onSocketClose.bind (me));
 	this.socket.on ("error", this.onSocketError.bind (me));
@@ -53,27 +83,51 @@ Session.prototype.getSocket = function () {
 	return this.socket;
 };
 
-Session.prototype.fromBuffer = function (buffer) {	
-	// IP header too short
-	if (buffer.length < 20)
-		return;
-	
-	// IPv4 only
-	if ((buffer[0] & 0xf0) != 0x40)
-		return;
-	
-	var ip_length = (buffer[0] & 0x0f) * 4;
-	
-	// ICMP message too short
-	if (buffer.length - ip_length < 8)
-		return;
+Session.prototype.fromBuffer = function (buffer) {
+	var offset;
 
-	var id = buffer.readUInt16BE (ip_length + 4);	
+	if (this.addressFamily == raw.AddressFamily.IPv6) {
+		// IP header too short
+		//if (buffer.length < 40)
+		//	return;
+		//
+		// IPv6
+		//if ((buffer[0] & 0xf0) != 0x60)
+		//	return;
+		//
+		//var ip_length = buffer.readUInt16BE (4);
+		//
+		// ICMP message too short
+		//if (buffer.length - ip_length < 8)
+		//	return;
+		//
+		//offset = 40;
+		
+		offset = 0;
+	} else {
+		// IP header too short
+		if (buffer.length < 20)
+			return;
+
+		// IPv4
+		if ((buffer[0] & 0xf0) != 0x40)
+			return;
+
+		var ip_length = (buffer[0] & 0x0f) * 4;
+
+		// ICMP message too short
+		if (buffer.length - ip_length < 8)
+			return;
+		
+		offset = ip_length;
+	}
+
+	var id = buffer.readUInt16BE (offset + 4);	
 	var req = this.reqs[id];
 	
 	if (req) {
-		req.type = buffer.readUInt8 (ip_length);
-		req.code = buffer.readUInt8 (ip_length + 1);
+		req.type = buffer.readUInt8 (offset);
+		req.code = buffer.readUInt8 (offset + 1);
 
 		return req;
 	} else {
@@ -93,19 +147,36 @@ Session.prototype.onSocketError = function (error) {
 Session.prototype.onSocketMessage = function (buffer, source) {
 	var req = this.fromBuffer (buffer);
 	if (req) {
-		if (req.type == 0) {
-			req.callback (null, req.target);
-		} else if (req.type == 3) {
-			req.callback (new Error ("Destination unreachable"), req.target);
-		} else if (req.type == 4) {
-			req.callback (new Error ("Source quench"), req.target);
-		} else if (req.type == 5) {
-			req.callback (new Error ("Redirect received"), req.target);
-		} else if (req.type == 11) {
-			req.callback (new Error ("Time exceeded"), req.target);
+		if (this.addressFamily == raw.AddressFamily.IPv6) {
+			if (req.type == 1) {
+				req.callback (new Error ("Destination unreachable"), req.target);
+			} else if (req.type == 2) {
+				req.callback (new Error ("Packet too big"), req.target);
+			} else if (req.type == 2) {
+				req.callback (new Error ("Time exceeded"), req.target);
+			} else if (req.type == 3) {
+				req.callback (new Error ("Parameter problem"), req.target);
+			} else if (req.type == 129) {
+				req.callback (null, req.target);
+			} else {
+				req.callback (new Error ("Unknown response type '" + req.type + "'"),
+						source);
+			}
 		} else {
-			req.callback (new Error ("Unknown response type '" + req.type + "'"),
-					source);
+			if (req.type == 0) {
+				req.callback (null, req.target);
+			} else if (req.type == 3) {
+				req.callback (new Error ("Destination unreachable"), req.target);
+			} else if (req.type == 4) {
+				req.callback (new Error ("Source quench"), req.target);
+			} else if (req.type == 5) {
+				req.callback (new Error ("Redirect received"), req.target);
+			} else if (req.type == 11) {
+				req.callback (new Error ("Time exceeded"), req.target);
+			} else {
+				req.callback (new Error ("Unknown response type '" + req.type + "'"),
+						source);
+			}
 		}
 		this.reqRemove (req.id);
 	}
@@ -177,7 +248,9 @@ Session.prototype.send = function (req) {
 Session.prototype.toBuffer = function (req) {
 	var buffer = new Buffer (16);
 	
-	buffer.writeUInt8 (8, 0);
+	var type = this.addressFamily == raw.AddressFamily.IPv6 ? 128 : 8;
+	
+	buffer.writeUInt8 (type, 0);
 	buffer.writeUInt8 (0, 1);
 	buffer.writeUInt16BE (0, 2);
 	buffer.writeUInt16BE (req.id, 4);
@@ -191,6 +264,8 @@ Session.prototype.toBuffer = function (req) {
 exports.createSession = function (options) {
 	return new Session (options || {});
 };
+
+exports.NetworkProtocol = NetworkProtocol;
 
 exports.Session = Session;
 
