@@ -71,6 +71,7 @@ Session.prototype.getSocket = function () {
 		protocol: protocol
 	};
 	
+	// For IPv6 the operating system will calculate checksums for us
 	if (this.addressFamily != raw.AddressFamily.IPv6) {
 		options.generateChecksums = true;
 		options.checksumOffset = 2;
@@ -87,22 +88,7 @@ Session.prototype.fromBuffer = function (buffer) {
 	var offset;
 
 	if (this.addressFamily == raw.AddressFamily.IPv6) {
-		// IP header too short
-		//if (buffer.length < 40)
-		//	return;
-		//
-		// IPv6
-		//if ((buffer[0] & 0xf0) != 0x60)
-		//	return;
-		//
-		//var ip_length = buffer.readUInt16BE (4);
-		//
-		// ICMP message too short
-		//if (buffer.length - ip_length < 8)
-		//	return;
-		//
-		//offset = 40;
-		
+		// IPv6 raw sockets don't pass the IP header back to us
 		offset = 0;
 	} else {
 		// IP header too short
@@ -159,8 +145,8 @@ Session.prototype.onSocketMessage = function (buffer, source) {
 			} else if (req.type == 129) {
 				req.callback (null, req.target);
 			} else {
-				req.callback (new Error ("Unknown response type '" + req.type + "'"),
-						source);
+				req.callback (new Error ("Unknown response type '" + req.type
+						+ "'"), req.target);
 			}
 		} else {
 			if (req.type == 0) {
@@ -174,8 +160,8 @@ Session.prototype.onSocketMessage = function (buffer, source) {
 			} else if (req.type == 11) {
 				req.callback (new Error ("Time exceeded"), req.target);
 			} else {
-				req.callback (new Error ("Unknown response type '" + req.type + "'"),
-						source);
+				req.callback (new Error ("Unknown response type '" + req.type
+						+ "'"), req.target);
 			}
 		}
 		this.reqRemove (req.id);

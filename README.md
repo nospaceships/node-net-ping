@@ -26,6 +26,10 @@ A ping session can then be created to ping many hosts:
 [nodejs]: http://nodejs.org "Node.js"
 [npm]: https://npmjs.org/ "npm"
 
+# Network Protocol Support
+
+This module supports IPv4 using the ICMP, and IPv6 using the ICMPv6.
+
 # Error Handling
 
 Each request exposed by this module (currently only `pingHost()`) requires a
@@ -57,6 +61,21 @@ occurred:
 The `Session` class will emit an `error` event for any other error not
 directly associated with a request.
 
+# Constants
+
+The following sections describe constants exported and used by this module.
+
+## ping.NetworkProtocol
+
+This object contains constants which can be used for the `networkProtocol`
+option to the `createSession()` function exposed by this module.  This option
+specifies the IP protocol version to use when creating the raw socket.
+
+The following constants are defined in this object:
+
+ * `IPv4` - IPv4 protocol
+ * `IPv6` - IPv6 protocol
+
 # Using This Module
 
 The `Session` class is used to issue ping requests to many hosts.  This module
@@ -70,6 +89,7 @@ The `createSession()` function instantiates and returns an instance of the
 
     // Default options
     var options = {
+        networkProtocol: ping.NetworkProtocol.IPv4,
         retries: 1,
         timeout: 2000
     };
@@ -79,6 +99,9 @@ The `createSession()` function instantiates and returns an instance of the
 The optional `options` parameter is an object, and can contain the following
 items:
 
+ * `networkProtocol` - Either the constant `ping.NetworkProtocol.IPv4` or the
+   constant `ping.NetworkProtocol.IPv6`, defaults to the constant
+   `ping.NetworkProtocol.IPv4`
  * `retries` - Number of times to re-send a ping requests, defaults to `1`
  * `timeout` - Number of milliseconds to wait for a response before re-trying
    or failing, defaults to `2000`
@@ -86,6 +109,8 @@ items:
 After creating the ping `Session` object an underlying raw socket will be
 created.  If the underlying raw socket cannot be opened an exception with be
 thrown.  The error will be an instance of the `Error` class.
+
+Seperate instances of the `Session` class must be created for IPv4 and IPv6.
 
 ## session.on ("close", callback)
 
@@ -165,7 +190,7 @@ following arguments will be passed to the `callback` function:
 
 The following example sends a ping request to a remote host:
 
-	session.pingHost ("192.168.1.254", function (error, target) {
+	session.pingHost ("fe80::a00:27ff:fe2a:3427", function (error, target) {
 		if (error)
 			console.log (target + ": " + error.toString ());
 		else
@@ -199,13 +224,13 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 
  * The RequestTimedOutError class is not being exported
 
+## Version 1.1.0 - 13/02/2013
+
+ * Support IPv6
+
 # Roadmap
 
-In no particular order:
-
- * Support pinging hostnames
- * Helper methods such as `pingSubnet()`, `pingBlock()` and `pingRange()`
- * Support IPv6
+Currently there are no outstanding roadmap items.
 
 Suggestions and requirements should be sent to <stephen.vickers.sv@gmail.com>.
 
