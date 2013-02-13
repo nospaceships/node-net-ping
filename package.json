@@ -1,6 +1,6 @@
 {
   "name": "net-ping",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Ping many hosts at once.",
   "main": "index.js",
   "directories": {
