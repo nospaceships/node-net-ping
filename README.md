@@ -185,9 +185,9 @@ following arguments will be passed to the `callback` function:
 
  * `error` - Instance of the `Error` class or a sub-class, or `null` if no
    error occurred
- * `target` - Dotted quad formatted IP address of the target host, note that
+ * `target` - The target parameter as specified in the request, note that
    if a gateway responds on behalf of the target host this parameter will
-   still be the IP address of the target host and NOT the responding gateways
+   still be the target host and NOT the responding gateway
 
 The following example sends a ping request to a remote host:
 
