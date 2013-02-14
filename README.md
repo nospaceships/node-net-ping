@@ -177,7 +177,8 @@ other outstanding ping requests.
 The `pingHost()` method sends a ping request to a remote host.
 
 The `target` parameter is the dotted quad formatted IP address of the target
-host.
+host for IPv4 sessions, or the compressed formatted IP address of the target
+host for IPv6 sessions.
 
 The `callback` function is called once the ping requests is complete.  The
 following arguments will be passed to the `callback` function:
