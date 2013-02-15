@@ -48,6 +48,8 @@ Session.prototype.close = function () {
 	if (this.socket)
 		this.socket.close ();
 	this.flush (new Error ("Socket forcibly closed"));
+	delete this.socket;
+	return this;
 };
 
 Session.prototype.flush = function (error) {
@@ -209,6 +211,8 @@ Session.prototype.pingHost = function (target, callback) {
 	this.reqs[req.id] = req;
 	this.reqsPending++;
 	this.send (req);
+	
+	return this;
 };
 
 Session.prototype.reqRemove = function (id) {
