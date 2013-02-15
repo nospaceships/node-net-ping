@@ -229,6 +229,12 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 
  * Support IPv6
 
+## Version 1.1.1 - 15/02/2013
+
+ * The `ping.Session.close()` method was not undefining the sessions raw
+   socket after closing
+ * Return self from the `pingHost()` method to chain method calls 
+
 # Roadmap
 
 Currently there are no outstanding roadmap items.
