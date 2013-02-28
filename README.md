@@ -237,7 +237,9 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 
 # Roadmap
 
-Currently there are no outstanding roadmap items.
+In no particular order:
+
+ * Implement traceRoute()
 
 Suggestions and requirements should be sent to <stephen.vickers.sv@gmail.com>.
 
