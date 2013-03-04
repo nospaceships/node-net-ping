@@ -235,6 +235,11 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
    socket after closing
  * Return self from the `pingHost()` method to chain method calls 
 
+## Version 1.1.2 - 04/03/2013
+
+ * Use the `raw.Socket.pauseRecv()` and `raw.Socket.resumeRecv()` methods
+   instead of closing a socket when there are no more outstanding requests
+
 # Roadmap
 
 In no particular order:
