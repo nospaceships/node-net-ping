@@ -80,8 +80,8 @@ Session.prototype.getSocket = function () {
 	}
 	
 	this.socket = raw.createSocket (options);
-	this.socket.on ("close", this.onSocketClose.bind (me));
 	this.socket.on ("error", this.onSocketError.bind (me));
+	this.socket.on ("close", this.onSocketClose.bind (me));
 	this.socket.on ("message", this.onSocketMessage.bind (me));
 	return this.socket;
 };
@@ -223,14 +223,19 @@ Session.prototype.reqRemove = function (id) {
 		delete this.reqs[req.id];
 		this.reqsPending--;
 	}
+	// If we have no more outstanding requests pause readable events
 	if (this.reqsPending <= 0)
-		this.close ();
+		if (! this.getSocket ().recvPaused)
+			this.getSocket ().pauseRecv ();
 	return req;
 };
 
 Session.prototype.send = function (req) {
 	var buffer = req.buffer;
 	var me = this;
+	// Resume readable events if the raw socket is paused
+	if (this.getSocket ().recvPaused)
+		this.getSocket ().resumeRecv ();
 	this.getSocket ().send (buffer, 0, buffer.length, req.target,
 			this.onSocketSend.bind (me, req));
 };
