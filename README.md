@@ -240,6 +240,10 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
  * Use the `raw.Socket.pauseRecv()` and `raw.Socket.resumeRecv()` methods
    instead of closing a socket when there are no more outstanding requests
 
+## Version 1.1.3 - 07/03/2013
+
+ * Sessions were limited to sending 65535 ping requests
+
 # Roadmap
 
 In no particular order:
