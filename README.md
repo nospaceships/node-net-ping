@@ -61,6 +61,18 @@ occurred:
 The `Session` class will emit an `error` event for any other error not
 directly associated with a request.
 
+# Packet Size
+
+By default ICMP echo request packets sent by this module are 16 bytes in size.
+Some implementations cannot cope with such small ICMP echo requests.  For
+example, some implementations will return an ICMP echo reply, but will include
+an incorrect ICMP checksum.
+
+This module exposes a `packetSize` option to the `createSession()` method which
+specifies how big ICMP echo request packets should be:
+
+    var session = ping.createSession ({packetSize: 64});
+
 # Constants
 
 The following sections describe constants exported and used by this module.
@@ -90,6 +102,7 @@ The `createSession()` function instantiates and returns an instance of the
     // Default options
     var options = {
         networkProtocol: ping.NetworkProtocol.IPv4,
+        packetSize: 16,
         retries: 1,
         timeout: 2000
     };
@@ -102,6 +115,9 @@ items:
  * `networkProtocol` - Either the constant `ping.NetworkProtocol.IPv4` or the
    constant `ping.NetworkProtocol.IPv6`, defaults to the constant
    `ping.NetworkProtocol.IPv4`
+ * `packetSize` - How many bytes each ICMP echo request packet should be,
+   defaults to `16`, if the value specified is less that `8` then the value
+   `8` will be used
  * `retries` - Number of times to re-send a ping requests, defaults to `1`
  * `timeout` - Number of milliseconds to wait for a response before re-trying
    or failing, defaults to `2000`
@@ -243,6 +259,11 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 ## Version 1.1.3 - 07/03/2013
 
  * Sessions were limited to sending 65535 ping requests
+
+## Version 1.1.4 - 09/04/2013
+
+ * Add the `packetSize` option to the `createSession()` method to specify how
+   many bytes each ICMP echo request packet should be
 
 # Roadmap
 
