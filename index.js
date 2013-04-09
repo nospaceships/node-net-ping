@@ -29,6 +29,11 @@ function Session (options) {
 	this.retries = (options && options.retries) ? options.retries : 1;
 	this.timeout = (options && options.timeout) ? options.timeout : 2000;
 	
+	this.packetSize = (options && options.packetSize) ? options.packetSize : 16;
+	
+	if (this.packetSize < 8)
+		this.packetSize = 8;
+	
 	this.addressFamily = (options && options.networkProtocol
 				&& options.networkProtocol == NetworkProtocol.IPv6)
 			? raw.AddressFamily.IPv6
@@ -110,7 +115,7 @@ Session.prototype.fromBuffer = function (buffer) {
 		offset = ip_length;
 	}
 	
-	if (buffer.length - offset < 16)
+	if (buffer.length - offset < 8)
 		return null;
 
 	var id = buffer.readUInt32BE (offset + 4);	
@@ -247,7 +252,7 @@ Session.prototype.send = function (req) {
 };
 
 Session.prototype.toBuffer = function (req) {
-	var buffer = new Buffer (16);
+	var buffer = new Buffer (this.packetSize);
 	
 	var type = this.addressFamily == raw.AddressFamily.IPv6 ? 128 : 8;
 	
