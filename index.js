@@ -28,22 +28,22 @@ util.inherits (RequestTimedOutError, Error);
 function Session (options) {
 	this.retries = (options && options.retries) ? options.retries : 1;
 	this.timeout = (options && options.timeout) ? options.timeout : 2000;
-	
+
 	this.packetSize = (options && options.packetSize) ? options.packetSize : 16;
-	
+
 	if (this.packetSize < 8)
 		this.packetSize = 8;
-	
+
 	this.addressFamily = (options && options.networkProtocol
 				&& options.networkProtocol == NetworkProtocol.IPv6)
 			? raw.AddressFamily.IPv6
 			: raw.AddressFamily.IPv4;
-	
+
 	this.socket = null;
-	
+
 	this.reqs = {};
 	this.reqsPending = 0;
-	
+
 	this.getSocket ();
 };
 
@@ -77,13 +77,13 @@ Session.prototype.getSocket = function () {
 		addressFamily: this.addressFamily,
 		protocol: protocol
 	};
-	
+
 	// For IPv6 the operating system will calculate checksums for us
 	if (this.addressFamily != raw.AddressFamily.IPv6) {
 		options.generateChecksums = true;
 		options.checksumOffset = 2;
 	}
-	
+
 	this.socket = raw.createSocket (options);
 	this.socket.on ("error", this.onSocketError.bind (me));
 	this.socket.on ("close", this.onSocketClose.bind (me));
@@ -111,20 +111,73 @@ Session.prototype.fromBuffer = function (buffer) {
 		// ICMP message too short
 		if (buffer.length - ip_length < 8)
 			return;
-		
+
 		offset = ip_length;
 	}
-	
+
 	if (buffer.length - offset < 8)
 		return null;
 
-	var id = buffer.readUInt32BE (offset + 4);	
-	var req = this.reqs[id];
-	
-	if (req) {
-		req.type = buffer.readUInt8 (offset);
-		req.code = buffer.readUInt8 (offset + 1);
+	var type = buffer.readUInt8 (offset);
+	var code = buffer.readUInt8 (offset + 1);
 
+	// Get the request ID from the payload in the response for some errors
+	if (this.addressFamily == raw.AddressFamily.IPv6) {
+		if (type == 1 || type == 2 || type == 3 || type == 4 || type == 129) {
+			ip_offset = offset + 8;
+
+			// IP header too short
+			if (buffer.length - ip_offset  < 40)
+				return;
+
+			// IPv6
+			if ((buffer[ip_offset] & 0xf0) != 0x60)
+				return;
+
+			// Skip over all extension headers if they exist
+			var next_header = buffer[ip_offset + 6];
+			var current_offset = 40;
+
+			while (1) {
+				if (next_header == 58)
+					break;
+				if (buffer.length - ip_offset - current_offset < 8)
+					return null;
+
+				var next_header = buffer[ip_offset + current_offset];
+				current_offset += buffer[ip_offset + current_offset + 1] * 8;
+			}
+
+			offset = ip_offset + current_offset;
+		}
+	} else {
+		if (type == 3 || type == 4 || type == 5 || type == 11) {
+			ip_offset = offset + 8;
+
+			// IP header too short
+			if (buffer.length - ip_offset  < 20)
+				return;
+
+			// IPv4
+			if ((buffer[ip_offset] & 0xf0) != 0x40)
+				return;
+
+			var ip_length = (buffer[ip_offset] & 0x0f) * 4;
+
+			// ICMP message too short
+			if (buffer.length - ip_offset - ip_length < 8)
+				return;
+
+			offset = ip_offset + ip_length;
+		}
+	}
+
+	var id = buffer.readUInt32BE (offset + 4);
+	var req = this.reqs[id];
+
+	if (req) {
+		req.type = type;
+		req.code = code;
 		return req;
 	} else {
 		return null;
@@ -143,38 +196,41 @@ Session.prototype.onSocketError = function (error) {
 Session.prototype.onSocketMessage = function (buffer, source) {
 	var req = this.fromBuffer (buffer);
 	if (req) {
+		this.reqRemove (req.id);
 		if (this.addressFamily == raw.AddressFamily.IPv6) {
 			if (req.type == 1) {
-				req.callback (new Error ("Destination unreachable"), req.target);
+				req.callback (new Error ("Destination unreachable"), req.target,
+						source);
 			} else if (req.type == 2) {
-				req.callback (new Error ("Packet too big"), req.target);
-			} else if (req.type == 2) {
-				req.callback (new Error ("Time exceeded"), req.target);
+				req.callback (new Error ("Packet too big"), req.target, source);
 			} else if (req.type == 3) {
-				req.callback (new Error ("Parameter problem"), req.target);
+				req.callback (new Error ("Time exceeded"), req.target, source);
+			} else if (req.type == 4) {
+				req.callback (new Error ("Parameter problem"), req.target,
+						source);
 			} else if (req.type == 129) {
-				req.callback (null, req.target);
+				req.callback (null, req.target, source);
 			} else {
 				req.callback (new Error ("Unknown response type '" + req.type
-						+ "'"), req.target);
+						+ "'"), req.target, source);
 			}
 		} else {
 			if (req.type == 0) {
-				req.callback (null, req.target);
+				req.callback (null, req.target, source);
 			} else if (req.type == 3) {
-				req.callback (new Error ("Destination unreachable"), req.target);
+				req.callback (new Error ("Destination unreachable"), req.target,
+						source);
 			} else if (req.type == 4) {
-				req.callback (new Error ("Source quench"), req.target);
+				req.callback (new Error ("Source quench"), req.target, source);
 			} else if (req.type == 5) {
-				req.callback (new Error ("Redirect received"), req.target);
+				req.callback (new Error ("Redirect received"), req.target, source);
 			} else if (req.type == 11) {
-				req.callback (new Error ("Time exceeded"), req.target);
+				req.callback (new Error ("Time exceeded"), req.target, source);
 			} else {
 				req.callback (new Error ("Unknown response type '" + req.type
-						+ "'"), req.target);
+						+ "'"), req.target, source);
 			}
 		}
-		this.reqRemove (req.id);
 	}
 };
 
@@ -202,7 +258,7 @@ Session.prototype.onTimeout = function (req) {
 var nextId = 1;
 
 // This will wrap after 4294967295 pings
-function _generateId (req) {	
+function _generateId (req) {
 	if (nextId > 4294967295)
 		nextId = 1;
 	return nextId++;
@@ -216,13 +272,13 @@ Session.prototype.pingHost = function (target, callback) {
 		callback: callback,
 		target: target
 	};
-	
+
 	req.buffer = this.toBuffer (req);
-	
+
 	this.reqs[req.id] = req;
 	this.reqsPending++;
 	this.send (req);
-	
+
 	return this;
 };
 
@@ -253,16 +309,16 @@ Session.prototype.send = function (req) {
 
 Session.prototype.toBuffer = function (req) {
 	var buffer = new Buffer (this.packetSize);
-	
+
 	var type = this.addressFamily == raw.AddressFamily.IPv6 ? 128 : 8;
-	
+
 	buffer.writeUInt8 (type, 0);
 	buffer.writeUInt8 (0, 1);
 	buffer.writeUInt16BE (0, 2);
 	buffer.writeUInt32BE (req.id, 4);
-	
+
 	// Checksums are be generated by our raw.Socket instance
-	
+
 	return buffer;
 };
 
