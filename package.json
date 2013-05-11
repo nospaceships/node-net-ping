@@ -1,6 +1,6 @@
 {
   "name": "net-ping",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Ping many hosts at once.",
   "main": "index.js",
   "directories": {
@@ -29,5 +29,5 @@
     "ping"
   ],
   "author": "Stephen Vickers <stephen.vickers.sv@gmail.com>",
-  "license": "GPL"
+  "license": "MIT"
 }
