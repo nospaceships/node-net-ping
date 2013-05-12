@@ -139,13 +139,24 @@ Session.prototype.fromBuffer = function (buffer) {
 			var current_offset = 40;
 
 			while (1) {
-				if (next_header == 58)
+				if (next_header == 58) // ICMPv6
 					break;
 				if (buffer.length - ip_offset - current_offset < 8)
 					return null;
 
 				var next_header = buffer[ip_offset + current_offset];
-				current_offset += buffer[ip_offset + current_offset + 1] * 8;
+				
+				if (current_header == 44) {
+					current_offset += 8;
+				} else if (current_header == 0 || current_header == 60
+							|| current_header == 43 || current_header == 51
+							|| current_header == 50 || current_header == 60
+							|| current_header == 135) {
+					current_offset += buffer[ip_offset + current_offset + 1] * 8;
+					current_offset += 8;
+				} else {
+					return null;
+				}
 			}
 
 			offset = ip_offset + current_offset;
