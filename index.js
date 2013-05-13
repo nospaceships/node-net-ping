@@ -123,7 +123,10 @@ Session.prototype.fromBuffer = function (buffer) {
 
 	// Get the request ID from the payload in the response for some errors
 	if (this.addressFamily == raw.AddressFamily.IPv6) {
-		if (type == 1 || type == 2 || type == 3 || type == 4 || type == 129) {
+		// The following code doesn't seem to work as expected in the wild so
+		// we'll comment it out for now.
+
+		/*if (type == 1 || type == 2 || type == 3 || type == 4 || type == 129) {
 			ip_offset = offset + 8;
 
 			// IP header too short
@@ -160,7 +163,7 @@ Session.prototype.fromBuffer = function (buffer) {
 			}
 
 			offset = ip_offset + current_offset;
-		}
+		}*/
 	} else {
 		if (type == 3 || type == 4 || type == 5 || type == 11) {
 			ip_offset = offset + 8;
@@ -205,6 +208,9 @@ Session.prototype.onSocketError = function (error) {
 };
 
 Session.prototype.onSocketMessage = function (buffer, source) {
+	console.log ("response: addressFamily=" + this.addressFamily + " source="
+			+ source + " buffer=" + buffer.toString ("hex"));
+
 	var req = this.fromBuffer (buffer);
 	if (req) {
 		this.reqRemove (req.id);
@@ -286,6 +292,10 @@ Session.prototype.pingHost = function (target, callback) {
 
 	req.buffer = this.toBuffer (req);
 
+	console.log ("request: addressFamily=" + this.addressFamily + " target="
+			+ req.target + " id=" + req.id + " buffer="
+			+ req.buffer.toString ("hex"));
+
 	this.reqs[req.id] = req;
 	this.reqsPending++;
 	this.send (req);
@@ -320,6 +330,11 @@ Session.prototype.send = function (req) {
 
 Session.prototype.toBuffer = function (req) {
 	var buffer = new Buffer (this.packetSize);
+
+	// Since our buffer represents real memory we should initialise it to
+	// prevent its previous contents from leaking to the network.
+	for (var i = 8; i < this.packetSize; i++)
+		buffer[i] = 0;
 
 	var type = this.addressFamily == raw.AddressFamily.IPv6 ? 128 : 8;
 
