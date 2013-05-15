@@ -58,6 +58,14 @@ occurred:
             console.log (target + ": Alive");
     });
 
+If a host other than the target reports an error its address will be included
+in the error, i.e.:
+
+    $ sudo node example/ping-ttl.js 1 192.168.2.10 192.168.2.20 192.168.2.30
+    192.168.2.10: Alive
+    192.168.2.20: Error: Time exceeded (source=192.168.1.1)
+    192.168.2.30: Not alive
+
 The `Session` class will emit an `error` event for any other error not
 directly associated with a request.
 
@@ -104,6 +112,7 @@ The `createSession()` function instantiates and returns an instance of the
         networkProtocol: ping.NetworkProtocol.IPv4,
         packetSize: 16,
         retries: 1,
+        sessionId: process.pid,
         timeout: 2000
     };
     
@@ -116,9 +125,14 @@ items:
    constant `ping.NetworkProtocol.IPv6`, defaults to the constant
    `ping.NetworkProtocol.IPv4`
  * `packetSize` - How many bytes each ICMP echo request packet should be,
-   defaults to `16`, if the value specified is less that `8` then the value
-   `8` will be used
+   defaults to `16`, if the value specified is less that `12` then the value
+   `12` will be used (8 bytes are required for the ICMP packet itself, then 4
+   bytes are required to encode a unique session ID in the request and response
+   packets)
  * `retries` - Number of times to re-send a ping requests, defaults to `1`
+ * `sessionId` - A unique ID used to identify request and response packets sent
+   by this instance of the `Session` class, defaults to the value of
+   `process.pid`
  * `timeout` - Number of milliseconds to wait for a response before re-trying
    or failing, defaults to `2000`
 
@@ -269,7 +283,11 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 
  * Incorrectly parsing ICMP error responses resulting in responses matching
    the wrong request
- * Added example program ping-ttl.js
+ * Use a unique session ID per instance of the `Session` class to identify
+   requests and responses sent by a session
+ * Added the (internal) `_debugRequest()` and `_debugResponse()` methods, and
+   the `_debug` option to the `createSession()` method
+ * Added example programs `ping-ttl.js` and `ping6-ttl.js`
  * Use MIT license instead of GPL
 
 # Roadmap
