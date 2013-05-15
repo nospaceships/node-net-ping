@@ -34,10 +34,7 @@ for (var i = 0; i < targets.length; i++) {
 			if (error instanceof ping.RequestTimedOutError)
 				console.log (target + ": Not alive");
 			else
-				if (target != source)
-					console.log (target + ": " + error.toString () + " (source=" + source + ")");
-				else
-					console.log (target + ": " + error.toString ());
+				console.log (target + ": " + error.toString ());
 		else
 			console.log (target + ": Alive");
 	});
