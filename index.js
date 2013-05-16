@@ -133,7 +133,7 @@ Session.prototype.fromBuffer = function (buffer) {
 	}
 
 	if (buffer.length - offset < 8)
-		return null;
+		return;
 
 	var type = buffer.readUInt8 (offset);
 	var code = buffer.readUInt8 (offset + 1);
@@ -196,7 +196,7 @@ Session.prototype.fromBuffer = function (buffer) {
 			var ip_length = (buffer[ip_offset] & 0x0f) * 4;
 
 			// ICMP message too short
-			if (buffer.length - ip_offset - ip_length < 8)
+			if (buffer.length - ip_offset - ip_length < 12)
 				return;
 
 			offset = ip_offset + ip_length;
