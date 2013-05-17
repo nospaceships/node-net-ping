@@ -131,8 +131,8 @@ items:
    packets)
  * `retries` - Number of times to re-send a ping requests, defaults to `1`
  * `sessionId` - A unique ID used to identify request and response packets sent
-   by this instance of the `Session` class, defaults to the value of
-   `process.pid`
+   by this instance of the `Session` class, valid numbers of in the range of
+   `1` to `65535`, defaults to the value of `process.pid % 65535`
  * `timeout` - Number of milliseconds to wait for a response before re-trying
    or failing, defaults to `2000`
 
