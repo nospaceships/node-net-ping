@@ -40,10 +40,10 @@ A request can complete in a number of ways, for example the request timed out,
 a response was received from a host other than the targeted host (i.e. a
 gateway) or an error occurred when sending the request.
 
-All errors excluding a timed out error are passed to the callback function as
-an instance of the `Error` object.  For timed out errors the error passed to
-the callback function will be an instance of the `ping.RequestTimedOutError`
-object, with the exposed `message` attribute set to `Request timed out`.
+All errors are sub-classes of the `Error` class.  For timed out errors the
+error passed to the callback function will be an instance of the
+`ping.RequestTimedOutError` class, with the exposed `message` attribute set
+to `Request timed out`.
 
 This makes it easy to determine if a host responded or whether an error
 occurred:
@@ -58,16 +58,29 @@ occurred:
             console.log (target + ": Alive");
     });
 
-If a host other than the target reports an error its address will be included
-in the error, i.e.:
+In addition to the the `ping.RequestTimedOutError` class, the following errors
+are also exported by this module to wrap ICMP error responses:
+
+ * `DestinationUnreachableError`
+ * `PacketTooBigError`
+ * `ParameterProblemError`
+ * `RedirectReceivedError`
+ * `SourceQuenchError`
+ * `TimeExceededError`
+
+These errors are typically reported by hosts other than the intended target.
+In all cases class exposes a `source` attribute which will specify the
+host who reported the error (which could be the intended target).  This will
+also be included in the errors `message` attribute, i.e.:
 
     $ sudo node example/ping-ttl.js 1 192.168.2.10 192.168.2.20 192.168.2.30
     192.168.2.10: Alive
-    192.168.2.20: Error: Time exceeded (source=192.168.1.1)
+    192.168.2.20: TimeExceededError: Time exceeded (source=192.168.1.1)
     192.168.2.30: Not alive
 
 The `Session` class will emit an `error` event for any other error not
-directly associated with a request.
+directly associated with a request.  This is typically an instance of the
+`Error` class with the errors `message` attribute specifying the reason.
 
 # Packet Size
 
@@ -131,7 +144,7 @@ items:
    packets)
  * `retries` - Number of times to re-send a ping requests, defaults to `1`
  * `sessionId` - A unique ID used to identify request and response packets sent
-   by this instance of the `Session` class, valid numbers of in the range of
+   by this instance of the `Session` class, valid numbers are in the range of
    `1` to `65535`, defaults to the value of `process.pid % 65535`
  * `timeout` - Number of milliseconds to wait for a response before re-trying
    or failing, defaults to `2000`
@@ -279,7 +292,7 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
  * Add the `packetSize` option to the `createSession()` method to specify how
    many bytes each ICMP echo request packet should be
 
-## Version 1.1.5 - ?
+## Version 1.1.5 - 17/05/2013
 
  * Incorrectly parsing ICMP error responses resulting in responses matching
    the wrong request
@@ -289,6 +302,15 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
    the `_debug` option to the `createSession()` method
  * Added example programs `ping-ttl.js` and `ping6-ttl.js`
  * Use MIT license instead of GPL
+
+## Version 1.1.6 - 17/05/2013
+
+ * Session IDs are now 2 bytes (previously 1 byte), and request IDs are also
+   now 2 bytes long (previously 3 bytes)
+ * Each ICMP error response now has an associated error class (i.e. the
+   `Time exceeded` response maps onto the `ping.TimeExceededError` class)
+ * Call request callbacks with an error when there are no free request IDs
+   because of too many outstanding requests
 
 # Roadmap
 

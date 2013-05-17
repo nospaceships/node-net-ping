@@ -19,11 +19,53 @@ var NetworkProtocol = {
 
 _expandConstantObject (NetworkProtocol);
 
-function RequestTimedOutError (message) {
+function DestinationUnreachableError (source) {
+	this.name = "DestinationUnreachableError";
+	this.message = "Destination unreachable (source=" + source + ")";
+	this.source = source;
+}
+util.inherits (DestinationUnreachableError, Error);
+
+function PacketTooBigError (source) {
+	this.name = "PacketTooBigError";
+	this.message = "Packet too big (source=" + source + ")";
+	this.source = source;
+}
+util.inherits (PacketTooBigError, Error);
+
+function ParameterProblemError (source) {
+	this.name = "ParameterProblemError";
+	this.message = "Parameter problem (source=" + source + ")";
+	this.source = source;
+}
+util.inherits (ParameterProblemError, Error);
+
+function RedirectReceivedError (source) {
+	this.name = "RedirectReceivedError";
+	this.message = "Redireect received (source=" + source + ")";
+	this.source = source;
+}
+util.inherits (RedirectReceivedError, Error);
+
+function RequestTimedOutError () {
 	this.name = "RequestTimedOutError";
-	this.message = message;
+	this.message = "Request timed out";
 }
 util.inherits (RequestTimedOutError, Error);
+
+function SourceQuenchError (source) {
+	this.name = "SourceQuenchError";
+	this.message = "Source quench (source=" + source + ")";
+	this.source = source;
+}
+util.inherits (SourceQuenchError, Error);
+
+function TimeExceededError (source) {
+	this.name = "TimeExceededError";
+	this.message = "Time exceeded (source=" + source + ")";
+	this.source = source;
+}
+util.inherits (TimeExceededError, Error);
 
 function Session (options) {
 	this.retries = (options && options.retries) ? options.retries : 1;
@@ -45,7 +87,7 @@ function Session (options) {
 			? options.sessionId
 			: process.pid;
 	
-	this.sessionId = this.sessionId % 255;
+	this.sessionId = this.sessionId % 65535;
 	
 	this.nextId = 1;
 
@@ -176,12 +218,12 @@ Session.prototype.fromBuffer = function (buffer) {
 	}
 
 	// Response is not for a request we generated
-	if (buffer.readUInt8 (offset + 4) != this.sessionId)
+	if (buffer.readUInt16BE (offset + 4) != this.sessionId)
 		return;
 
 	buffer[offset + 4] = 0;
 	
-	var id = buffer.readUInt32BE (offset + 4);
+	var id = buffer.readUInt16BE (offset + 6);
 	var req = this.reqs[id];
 
 	if (req) {
@@ -211,17 +253,13 @@ Session.prototype.onSocketMessage = function (buffer, source) {
 		this.reqRemove (req.id);
 		if (this.addressFamily == raw.AddressFamily.IPv6) {
 			if (req.type == 1) {
-				req.callback (new Error ("Destination unreachable (source="
-						+ source + ")"), req.target);
+				req.callback (new DestinationUnreachableError (source), req.target);
 			} else if (req.type == 2) {
-				req.callback (new Error ("Packet too big (source=" + source + ")"),
-						req.target);
+				req.callback (new PacketTooBigError (source), req.target);
 			} else if (req.type == 3) {
-				req.callback (new Error ("Time exceeded (source=" + source + ")"),
-						req.target);
+				req.callback (new TimeExceededError (source), req.target);
 			} else if (req.type == 4) {
-				req.callback (new Error ("Parameter problem (source=" + source
-						+ ")"), req.target);
+				req.callback (new ParameterProblemError (source), req.target);
 			} else if (req.type == 129) {
 				req.callback (null, req.target);
 			} else {
@@ -232,17 +270,13 @@ Session.prototype.onSocketMessage = function (buffer, source) {
 			if (req.type == 0) {
 				req.callback (null, req.target);
 			} else if (req.type == 3) {
-				req.callback (new Error ("Destination unreachable (source="
-						+ source + ")"), req.target);
+				req.callback (new DestinationUnreachableError (source), req.target);
 			} else if (req.type == 4) {
-				req.callback (new Error ("Source quench (source=" + source + ")"),
-						req.target);
+				req.callback (new SourceQuenchError (source), req.target);
 			} else if (req.type == 5) {
-				req.callback (new Error ("Redirect received (source=" + source
-						+ ")"), req.target);
+				req.callback (new RedirectReceivedError (source), req.target);
 			} else if (req.type == 11) {
-				req.callback (new Error ("Time exceeded (source=" + source + ")"),
-						req.target);
+				req.callback (new TimeExceededError (source), req.target);
 			} else {
 				req.callback (new Error ("Unknown response type '" + req.type
 						+ "' (source=" + source + ")"), req.target);
@@ -274,19 +308,28 @@ Session.prototype.onTimeout = function (req) {
 
 // Keep searching for an ID which is not in use
 Session.prototype._generateId = function () {
+	var startId = this.nextId;
 	while (1) {
-		if (this.nextId > 16777215)
+		if (this.nextId > 65535)
 			this.nextId = 1;
 		if (this.reqs[this.nextId]) {
 			this.nextId++
-			continue;
 		} else {
 			return this.nextId;
 		}
+		// No free request IDs
+		if (this.nextId == startId)
+			return;
 	}
 }
 
 Session.prototype.pingHost = function (target, callback) {
+	var id = this._generateId ();
+	if (! id) {
+		callback (new Error ("Too many requests outstanding"), target);
+		return this;
+	}
+
 	var req = {
 		id: this._generateId (),
 		retries: this.retries,
@@ -345,9 +388,8 @@ Session.prototype.toBuffer = function (req) {
 	buffer.writeUInt8 (type, 0);
 	buffer.writeUInt8 (0, 1);
 	buffer.writeUInt16BE (0, 2);
-	buffer.writeUInt32BE (req.id, 4);
-	
-	buffer[4] = this.sessionId;
+	buffer.writeUInt16BE (this.sessionId, 4);
+	buffer.writeUInt16BE (req.id, 6);
 	
 	// Checksums are be generated by our raw.Socket instance
 
@@ -362,4 +404,10 @@ exports.NetworkProtocol = NetworkProtocol;
 
 exports.Session = Session;
 
+exports.DestinationUnreachableError = DestinationUnreachableError;
+exports.PacketTooBigError = PacketTooBigError;
+exports.ParameterProblemError = ParameterProblemError;
+exports.RedirectReceivedError = RedirectReceivedError;
 exports.RequestTimedOutError = RequestTimedOutError;
+exports.SourceQuenchError = SourceQuenchError;
+exports.TimeExceededError = TimeExceededError;
