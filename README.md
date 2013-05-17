@@ -125,7 +125,7 @@ The `createSession()` function instantiates and returns an instance of the
         networkProtocol: ping.NetworkProtocol.IPv4,
         packetSize: 16,
         retries: 1,
-        sessionId: process.pid,
+        sessionId: (process.pid % 65535),
         timeout: 2000
     };
     
@@ -306,8 +306,8 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 ## Version 1.1.6 - 17/05/2013
 
  * Session IDs are now 2 bytes (previously 1 byte), and request IDs are also
-   now 2 bytes long (previously 3 bytes)
- * Each ICMP error response now has an associated error class (i.e. the
+   now 2 bytes (previously 3 bytes)
+ * Each ICMP error response now has an associated error class (e.g. the
    `Time exceeded` response maps onto the `ping.TimeExceededError` class)
  * Call request callbacks with an error when there are no free request IDs
    because of too many outstanding requests
