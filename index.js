@@ -44,6 +44,10 @@ function Session (options) {
 	this.sessionId = (options && options.sessionId)
 			? options.sessionId
 			: process.pid;
+	
+	this.sessionId = this.sessionId % 255;
+	
+	this.nextId = 1;
 
 	this.socket = null;
 
@@ -109,104 +113,74 @@ Session.prototype.getSocket = function () {
 };
 
 Session.prototype.fromBuffer = function (buffer) {
-	var offset;
+	var offset, type, code;
 
 	if (this.addressFamily == raw.AddressFamily.IPv6) {
-		// IPv6 raw sockets don't pass the IP header back to us
+		// IPv6 raw sockets don't pass the IPv6 header back to us
 		offset = 0;
+
+		if (buffer.length - offset < 8)
+			return;
+		
+		// We don't believe any IPv6 options will be passed back to us so we
+		// don't attempt to pass them here.
+
+		type = buffer.readUInt8 (offset);
+		code = buffer.readUInt8 (offset + 1);
 	} else {
-		// IP header too short
-		if (buffer.length < 20)
+		// Need at least 20 bytes for an IP header, and it should be IPv4
+		if (buffer.length < 20 || (buffer[0] & 0xf0) != 0x40)
 			return;
 
-		// IPv4
-		if ((buffer[0] & 0xf0) != 0x40)
-			return;
-
+		// The length of the IPv4 header is in mulitples of double words
 		var ip_length = (buffer[0] & 0x0f) * 4;
 
-		// ICMP message too short
-		if (buffer.length - ip_length < 12)
+		// ICMP header is 8 bytes, we don't care about the data for now
+		if (buffer.length - ip_length < 8)
 			return;
 
-		offset = ip_length;
-	}
+		var ip_icmp_offset = ip_length;
 
-	if (buffer.length - offset < 8)
-		return;
+		// ICMP message too short
+		if (buffer.length - ip_icmp_offset < 8)
+			return;
 
-	var type = buffer.readUInt8 (offset);
-	var code = buffer.readUInt8 (offset + 1);
+		type = buffer.readUInt8 (ip_icmp_offset);
+		code = buffer.readUInt8 (ip_icmp_offset + 1);
 
-	// Get the request ID from the payload in the response for some errors
-	if (this.addressFamily == raw.AddressFamily.IPv6) {
-		// The following code doesn't seem to work as expected in the wild so
-		// we'll comment it out for now.
-
-		/*if (type == 1 || type == 2 || type == 3 || type == 4 || type == 129) {
-			ip_offset = offset + 8;
-
-			// IP header too short
-			if (buffer.length - ip_offset  < 40)
-				return;
-
-			// IPv6
-			if ((buffer[ip_offset] & 0xf0) != 0x60)
-				return;
-
-			// Skip over all extension headers if they exist
-			var next_header = buffer[ip_offset + 6];
-			var current_offset = 40;
-
-			while (1) {
-				if (next_header == 58) // ICMPv6
-					break;
-				if (buffer.length - ip_offset - current_offset < 8)
-					return null;
-
-				var next_header = buffer[ip_offset + current_offset];
-				
-				if (current_header == 44) {
-					current_offset += 8;
-				} else if (current_header == 0 || current_header == 60
-							|| current_header == 43 || current_header == 51
-							|| current_header == 50 || current_header == 60
-							|| current_header == 135) {
-					current_offset += buffer[ip_offset + current_offset + 1] * 8;
-					current_offset += 8;
-				} else {
-					return null;
-				}
-			}
-
-			offset = ip_offset + current_offset;
-		}*/
-	} else {
+		// For error type responses the sequence and identifier cannot be
+		// extracted in the same way as echo responses, the data part contains
+		// the IP header from our request, followed with at least 8 bytes from
+		// the echo request that generated the error, so we first go to the IP
+		// header, then skip that to get to the ICMP packet which contains the
+		// sequence and identifier.
 		if (type == 3 || type == 4 || type == 5 || type == 11) {
-			ip_offset = offset + 8;
+			var ip_icmp_ip_offset = ip_icmp_offset + 8;
 
-			// IP header too short
-			if (buffer.length - ip_offset  < 20)
+			// Need at least 20 bytes for an IP header, and it should be IPv4
+			if (buffer.length - ip_icmp_ip_offset  < 20
+					|| (buffer[ip_icmp_ip_offset] & 0xf0) != 0x40)
 				return;
 
-			// IPv4
-			if ((buffer[ip_offset] & 0xf0) != 0x40)
-				return;
-
-			var ip_length = (buffer[ip_offset] & 0x0f) * 4;
+			// The length of the IPv4 header is in mulitples of double words
+			var ip_icmp_ip_length = (buffer[ip_icmp_ip_offset] & 0x0f) * 4;
 
 			// ICMP message too short
-			if (buffer.length - ip_offset - ip_length < 12)
+			if (buffer.length - ip_icmp_ip_offset - ip_icmp_ip_length < 8)
 				return;
 
-			offset = ip_offset + ip_length;
+			offset = ip_icmp_ip_offset + ip_icmp_ip_length;
+		} else {
+			offset = ip_icmp_offset
 		}
 	}
 
 	// Response is not for a request we generated
-	if (buffer.readUInt32BE (offset + 8) != this.sessionId)
+	if (buffer.readUInt8 (offset + 4) != this.sessionId)
 		return;
 
+	buffer[offset + 4] = 0;
+	
 	var id = buffer.readUInt32BE (offset + 4);
 	var req = this.reqs[id];
 
@@ -298,18 +272,23 @@ Session.prototype.onTimeout = function (req) {
 	}
 };
 
-var nextId = 1;
-
-// This will wrap after 4294967295 pings
-function _generateId (req) {
-	if (nextId > 4294967295)
-		nextId = 1;
-	return nextId++;
+// Keep searching for an ID which is not in use
+Session.prototype._generateId = function () {
+	while (1) {
+		if (this.nextId > 16777215)
+			this.nextId = 1;
+		if (this.reqs[this.nextId]) {
+			this.nextId++
+			continue;
+		} else {
+			return this.nextId;
+		}
+	}
 }
 
 Session.prototype.pingHost = function (target, callback) {
 	var req = {
-		id: _generateId (),
+		id: this._generateId (),
 		retries: this.retries,
 		timeout: this.timeout,
 		callback: callback,
@@ -358,7 +337,7 @@ Session.prototype.toBuffer = function (req) {
 
 	// Since our buffer represents real memory we should initialise it to
 	// prevent its previous contents from leaking to the network.
-	for (var i = 12; i < this.packetSize; i++)
+	for (var i = 8; i < this.packetSize; i++)
 		buffer[i] = 0;
 
 	var type = this.addressFamily == raw.AddressFamily.IPv6 ? 128 : 8;
@@ -368,8 +347,8 @@ Session.prototype.toBuffer = function (req) {
 	buffer.writeUInt16BE (0, 2);
 	buffer.writeUInt32BE (req.id, 4);
 	
-	buffer.writeUInt32BE (this.sessionId, 8);
-
+	buffer[4] = this.sessionId;
+	
 	// Checksums are be generated by our raw.Socket instance
 
 	return buffer;
