@@ -26,7 +26,11 @@
     "monitoring",
   	 "net",
   	 "network",
-    "ping"
+    "ping",
+    "trace",
+    "trace-route",
+    "traceroute",
+    "tracert"
   ],
   "author": "Stephen Vickers <stephen.vickers.sv@gmail.com>",
   "license": "MIT"
