@@ -155,6 +155,7 @@ Session.prototype.getSocket = function () {
 	this.socket.on ("close", this.onSocketClose.bind (me));
 	this.socket.on ("message", this.onSocketMessage.bind (me));
 	
+	this.ttl = null;
 	this.setTTL (this.defaultTTL);
 	
 	return this.socket;

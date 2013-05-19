@@ -353,7 +353,7 @@ The following example initiates a trace route to a remote host:
         }
     }
 
-    session.pingHost ("192.168.10.10", 10, feedCb, doneCb);
+    session.traceRoute ("192.168.10.10", 10, feedCb, doneCb);
 
 # Example Programs
 
@@ -435,10 +435,6 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
    `Date` class to specify when a request was sent and a response received
 
 # Roadmap
-
-In no particular order:
-
- * Implement traceRoute()
 
 Suggestions and requirements should be sent to <stephen.vickers.sv@gmail.com>.
 
