@@ -17,13 +17,11 @@ var options = {
 	networkProtocol: ping.NetworkProtocol.IPv6,
 	packetSize: 4,
 	retries: 1,
-	timeout: 2008
+	ttl: ttl,
+	timeout: 2000
 };
 
 var session = ping.createSession (options);
-
-session.getSocket ().setOption (raw.SocketLevel.IPPROTO_IPV6,
-		raw.SocketOption.IPV6_TTL, ttl);
 
 session.on ("error", function (error) {
 	console.trace (error.toString ());

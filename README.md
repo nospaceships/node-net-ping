@@ -11,7 +11,7 @@ It is loaded using the `require()` function:
 
     var ping = require ("net-ping");
 
-A ping session can then be created to ping many hosts:
+A ping session can then be created to ping or trace route to many hosts:
 
     var session = ping.createSession ();
 
@@ -32,21 +32,16 @@ This module supports IPv4 using the ICMP, and IPv6 using the ICMPv6.
 
 # Error Handling
 
-Each request exposed by this module (currently only `pingHost()`) requires a
-mandatory callback function.  The callback function is executed once the
-request has completed.
-
-A request can complete in a number of ways, for example the request timed out,
-a response was received from a host other than the targeted host (i.e. a
-gateway) or an error occurred when sending the request.
+Each request exposed by this module requires one or more mandatory callback
+functions.  Callback functions are typically provided an `error` argument.
 
 All errors are sub-classes of the `Error` class.  For timed out errors the
 error passed to the callback function will be an instance of the
 `ping.RequestTimedOutError` class, with the exposed `message` attribute set
 to `Request timed out`.
 
-This makes it easy to determine if a host responded or whether an error
-occurred:
+This makes it easy to determine if a host responded, a time out occurred, or
+whether an error response was received:
 
     session.pingHost ("1.2.3.4", function (error, target) {
         if (error)
@@ -69,7 +64,7 @@ are also exported by this module to wrap ICMP error responses:
  * `TimeExceededError`
 
 These errors are typically reported by hosts other than the intended target.
-In all cases class exposes a `source` attribute which will specify the
+In all cases each class exposes a `source` attribute which will specify the
 host who reported the error (which could be the intended target).  This will
 also be included in the errors `message` attribute, i.e.:
 
@@ -94,6 +89,38 @@ specifies how big ICMP echo request packets should be:
 
     var session = ping.createSession ({packetSize: 64});
 
+# Round Trip Times
+
+Some callbacks used by methods exposed by this module provide two instances of
+the JavaScript `Date` class specifying when the first ping was sent for a
+request, and when a request completed.
+
+These parameters are typically named `sent` and `rcvd`, and are provided to
+help round trip time calculation.
+
+A request can complete in one of two ways.  In the first, a ping response is
+received and `rcvd - sent` will yield the round trip time for the request in
+milliseconds.
+
+In the second, no ping response is received resulting in a request time out.
+In this case `rcvd - sent` will yield the total time spent waiting for each
+retry to timeout if any.  For example, if the `retries` option to the
+`createSession()` method was specified as `2` and `timeout` as `2000` then
+`rcvd - sent` will yield more than `6000` milliseconds.
+
+Although this module provides instances of the `Date` class to help round trip
+time calculation the dates and times represented in each instance should not be
+considered 100% accurate.
+
+Environmental conditions can affect when a date and time is actually
+calculated, e.g. garbage collection introducing a delay or the receipt of many
+packets at once.  There are also a number of functions through which received
+packets must pass, which can also introduce a slight variable delay.
+
+Throughout development experience has shown that, in general the smaller the
+round trip time the less accurate it will be - but the information is still
+useful nonetheless.
+
 # Constants
 
 The following sections describe constants exported and used by this module.
@@ -111,9 +138,9 @@ The following constants are defined in this object:
 
 # Using This Module
 
-The `Session` class is used to issue ping requests to many hosts.  This module
-exports the `createSession()` function which is used to create instances of
-the `Session` class.
+The `Session` class is used to issue ping and trace route requests to many
+hosts.  This module exports the `createSession()` function which is used to
+create instances of the `Session` class.
 
 ## ping.createSession ([options])
 
@@ -126,7 +153,8 @@ The `createSession()` function instantiates and returns an instance of the
         packetSize: 16,
         retries: 1,
         sessionId: (process.pid % 65535),
-        timeout: 2000
+        timeout: 2000,
+        ttl: 128
     };
     
     var session = ping.createSession (options);
@@ -148,6 +176,7 @@ items:
    `1` to `65535`, defaults to the value of `process.pid % 65535`
  * `timeout` - Number of milliseconds to wait for a response before re-trying
    or failing, defaults to `2000`
+ * `ttl` - Value to use for the IP header time to live field, defaults to `128`
 
 After creating the ping `Session` object an underlying raw socket will be
 created.  If the underlying raw socket cannot be opened an exception with be
@@ -228,18 +257,103 @@ following arguments will be passed to the `callback` function:
 
  * `error` - Instance of the `Error` class or a sub-class, or `null` if no
    error occurred
- * `target` - The target parameter as specified in the request, note that
-   if a gateway responds on behalf of the target host this parameter will
+ * `target` - The target parameter as specified in the request
    still be the target host and NOT the responding gateway
+ * `sent` - An instance of the `Date` class specifying when the first ping
+   was sent for this request (refer to the Round Trip Time section for more
+   information)
+ * `rcvd` - An instance of the `Date` class specifying when the request
+   completed (refer to the Round Trip Time section for more information)
 
 The following example sends a ping request to a remote host:
 
-	session.pingHost ("fe80::a00:27ff:fe2a:3427", function (error, target) {
-		if (error)
-			console.log (target + ": " + error.toString ());
-		else
-			console.log (target + ": Alive");
-	});
+    var target = "fe80::a00:27ff:fe2a:3427";
+
+    session.pingHost (target, function (error, target, sent, rcvd) {
+        var ms = rcvd - sent;
+        if (error)
+            console.log (target + ": " + error.toString ());
+        else
+            console.log (target + ": Alive (ms=" + ms + ")");
+    });
+
+## session.traceRoute (target, ttl, feedCallback, doneCallback)
+
+The `traceRoute()` method provides similar functionality to the trace route
+utility typically provided with most networked operating systems.
+
+The `target` parameter is the dotted quad formatted IP address of the target
+host for IPv4 sessions, or the compressed formatted IP address of the target
+host for IPv6 sessions.  The optional `ttl` parameter specifies the maximum
+number of hops used by the trace route and defaults to the `ttl` options
+parameter as defined by the `createSession()` method.
+
+Some hosts do not respond to ping requests when the time to live is `0`, that
+is they will not send back an time exceeded error response.  Instead of
+stopping the trace route at the first time out this method will move on to the
+next hop, by increasing the time to live by 1.  It will do this 2 times,
+meaning that a trace route will continue until the target host responds or at
+most 3 request time outs are experienced.
+
+Each requst is subject to the `retries` and `timeout` option parameters to the
+`createSession()` method.  That is, requests will be retried per hop as per
+these parameters.
+
+This method will not call a single callback once the trace route is complete.
+Instead the `feedCallback` function will be called each time a ping response is
+received or a time out occurs. The following arguments will be passed to the
+`feedCallback` function:
+
+ * `error` - Instance of the `Error` class or a sub-class, or `null` if no
+   error occurred
+ * `target` - The target parameter as specified in the request
+ * `ttl` - The time to live used in the request which triggered this respinse
+ * `sent` - An instance of the `Date` class specifying when the first ping
+   was sent for this request (refer to the Round Trip Time section for more
+   information)
+ * `rcvd` - An instance of the `Date` class specifying when the request
+   completed (refer to the Round Trip Time section for more information)
+
+Once a ping response has been received from the target, or more than three
+request timed out errors are experienced, the `doneCallback` function will be
+called. The following arguments will be passed to the `doneCallback` function:
+
+ * `error` - Instance of the `Error` class or a sub-class, or `null` if no
+   error occurred
+ * `target` - The target parameter as specified in the request
+
+Once the `doneCallback` function has been called the request is complete and
+the `requestCallback` function will no longer be called.
+
+If the `feedCallback` function returns a true value when called the trace route
+will stop and the `doneCallback` will be called.
+
+The following example initiates a trace route to a remote host:
+
+    function doneCb (error, target) {
+        if (error)
+            console.log (target + ": " + error.toString ());
+        else
+            console.log (target + ": Done");
+    }
+
+    function feedCb (error, target, ttl, sent, rcvd) {
+        var ms = rcvd - sent;
+        if (error) {
+            if (error instanceof ping.TimeExceededError) {
+                console.log (target + ": " + error.source + " (ttl="
+                        + ttl + " ms=" + ms +")");
+            } else {
+                console.log (target + ": " + error.toString ()
+                        + " (ttl=" + ttl + " ms=" + ms +")");
+            }
+        } else {
+            console.log (target + ": " + target + " (ttl=" + ttl
+                    + " ms=" + ms +")");
+        }
+    }
+
+    session.pingHost ("192.168.10.10", 10, feedCb, doneCb);
 
 # Example Programs
 
@@ -311,6 +425,14 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
    `Time exceeded` response maps onto the `ping.TimeExceededError` class)
  * Call request callbacks with an error when there are no free request IDs
    because of too many outstanding requests
+
+## Version 1.1.7 - 19/05/2013
+
+ * Added the `traceRoute()` method
+ * Added the `ttl` option parameter to the `createSession()` method, and
+   updated the example programs `ping-ttl.js` and `ping6-ttl.js` to use it
+ * Response callback for `pingHost()` now includes two instances of the
+   `Date` class to specify when a request was sent and a response received
 
 # Roadmap
 
