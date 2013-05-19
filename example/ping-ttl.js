@@ -16,13 +16,11 @@ for (var i = 3; i < process.argv.length; i++)
 var options = {
 	packetSize: 4,
 	retries: 1,
+	ttl: ttl,
 	timeout: 2000
 };
 
 var session = ping.createSession (options);
-
-session.getSocket ().setOption (raw.SocketLevel.IPPROTO_IP,
-		raw.SocketOption.IP_TTL, ttl);
 
 session.on ("error", function (error) {
 	console.trace (error.toString ());
