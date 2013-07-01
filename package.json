@@ -1,6 +1,6 @@
 {
   "name": "net-ping",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "Ping and trace route to many hosts at once.",
   "main": "index.js",
   "directories": {
