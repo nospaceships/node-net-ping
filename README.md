@@ -438,6 +438,10 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 
  * Use `raw.Socket.createChecksum()` instead of automatic checksum generation
 
+## Version 1.1.9 - 01/07/2013
+
+ * Use `raw.Socket.writeChecksum()` instead of manually rendering checksums
+
 # Roadmap
 
 Suggestions and requirements should be sent to <stephen.vickers.sv@gmail.com>.

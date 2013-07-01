@@ -428,10 +428,8 @@ Session.prototype.toBuffer = function (req) {
 	buffer.writeUInt16BE (0, 2);
 	buffer.writeUInt16BE (this.sessionId, 4);
 	buffer.writeUInt16BE (req.id, 6);
-	
-	var checksum = raw.createChecksum (buffer);
-	buffer.writeUInt8 ((checksum & 0xff00) >> 8, 2);
-	buffer.writeUInt8 (checksum & 0xff, 3);
+
+	raw.writeChecksum (buffer, 2, raw.createChecksum (buffer));
 
 	return buffer;
 };
