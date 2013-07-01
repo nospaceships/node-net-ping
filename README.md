@@ -434,6 +434,10 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
  * Response callback for `pingHost()` now includes two instances of the
    `Date` class to specify when a request was sent and a response received
 
+## Version 1.1.8 - 01/07/2013
+
+ * Use `raw.Socket.createChecksum()` instead of automatic checksum generation
+
 # Roadmap
 
 Suggestions and requirements should be sent to <stephen.vickers.sv@gmail.com>.
