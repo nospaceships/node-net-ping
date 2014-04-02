@@ -255,6 +255,21 @@ Session.prototype.onSocketMessage = function (buffer, source) {
 
 	var req = this.fromBuffer (buffer);
 	if (req) {
+		/**
+		 ** If we ping'd ourself (i.e. 127.0.0.1 or ::1) then it is likely we
+		 ** will receive the echo request in addition to any corresponding echo
+		 ** responses.  We discard the request packets here so that we don't
+		 ** delete the request from the from the request queue since we haven't
+		 ** actually received a response yet.
+		 **/
+		if (this.addressFamily == raw.AddressFamily.IPv6) {
+			if (req.type == 128)
+				return;
+		} else {
+			if (req.type == 8)
+				return;
+		}
+		
 		this.reqRemove (req.id);
 		
 		if (this.addressFamily == raw.AddressFamily.IPv6) {

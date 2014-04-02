@@ -442,6 +442,11 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 
  * Use `raw.Socket.writeChecksum()` instead of manually rendering checksums
 
+## Version 1.1.10 - 02/04/2014
+
+ * Echo requests sent by this module are processed like responses when sent to
+   the `127.0.0.1` and `::1` addresses
+
 # Roadmap
 
 Suggestions and requirements should be sent to <stephen.vickers.sv@gmail.com>.
