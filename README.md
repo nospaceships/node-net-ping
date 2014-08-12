@@ -447,6 +447,11 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
  * Echo requests sent by this module are processed like responses when sent to
    the `127.0.0.1` and `::1` addresses
 
+## Version 1.1.11 - 12/08/2014
+
+ * Cannot specify the `retries` parameter for the `Session` class as `0`
+ * Added example program `ping-retries-0.js`
+
 # Roadmap
 
 Suggestions and requirements should be sent to <stephen.vickers.sv@gmail.com>.
