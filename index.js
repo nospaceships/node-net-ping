@@ -42,7 +42,7 @@ util.inherits (ParameterProblemError, Error);
 
 function RedirectReceivedError (source) {
 	this.name = "RedirectReceivedError";
-	this.message = "Redireect received (source=" + source + ")";
+	this.message = "Redirect received (source=" + source + ")";
 	this.source = source;
 }
 util.inherits (RedirectReceivedError, Error);
