@@ -1,5 +1,5 @@
 
-# net-ping - [homepage][homepage]
+# net-ping
 
 This module implements ICMP Echo (ping) support for [Node.js][nodejs].
 
@@ -22,7 +22,6 @@ A ping session can then be created to ping or trace route to many hosts:
             console.log (target + ": Alive");
     });
 
-[homepage]: http://re-tool.org "Homepage"
 [nodejs]: http://nodejs.org "Node.js"
 [npm]: https://npmjs.org/ "npm"
 
@@ -451,6 +450,10 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 
  * Cannot specify the `retries` parameter for the `Session` class as `0`
  * Added example program `ping-retries-0.js`
+
+## Version 1.1.12 - 22/09/2015
+
+ * Host repository on GitHub
 
 # Roadmap
 
