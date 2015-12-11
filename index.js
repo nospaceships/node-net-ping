@@ -493,7 +493,7 @@ Session.prototype.traceRoute = function (target, ttl, feedCallback,
 		ttl = this.ttl;
 	}
 
-	permitedTimeouts = permitedTimeouts || 5;
+	permitedTimeouts = permitedTimeouts || 3; //Default value
 
 	var id = this._generateId ();
 	if (! id) {
