@@ -1,6 +1,6 @@
 {
   "name": "net-ping",
-  "version": "1.1.12",
+  "version": "1.1.13",
   "description": "Ping and trace route to many hosts at once.",
   "main": "index.js",
   "directories": {
@@ -13,7 +13,11 @@
     {
       "name": "Stephen Vickers",
       "email": "stephen.vickers.sv@gmail.com"
-    } 
+    },
+    {
+      "name": "Alexander Soto",
+      "email": "nickforspeed25@gmail.com"
+    }
   ],
   "repository": {
     "type": "git",

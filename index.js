@@ -462,7 +462,7 @@ Session.prototype.traceRouteCallback = function (trace, req, error, target,
 			return;
 		}
 		
-		if ((error instanceof RequestTimedOutError) && ++trace.timeouts >= 3) {
+		if ((error instanceof RequestTimedOutError) && ++trace.timeouts >= trace.permitedTimeouts) {
 			trace.doneCallback (new Error ("Too many timeouts"), target);
 			return;
 		}
@@ -486,12 +486,14 @@ Session.prototype.traceRouteCallback = function (trace, req, error, target,
 }
 
 Session.prototype.traceRoute = function (target, ttl, feedCallback,
-		doneCallback) {
+		doneCallback, permitedTimeouts) {
 	if (! doneCallback) {
 		doneCallback = feedCallback;
 		feedCallback = ttl;
 		ttl = this.ttl;
 	}
+
+	permitedTimeouts = permitedTimeouts || 3; //Default value
 
 	var id = this._generateId ();
 	if (! id) {
@@ -505,7 +507,8 @@ Session.prototype.traceRoute = function (target, ttl, feedCallback,
 		feedCallback: feedCallback,
 		doneCallback: doneCallback,
 		ttl: ttl,
-		timeouts: 0
+		timeouts: 0,
+		permitedTimeouts: permitedTimeouts
 	};
 	
 	var me = this;

@@ -351,8 +351,8 @@ The following example initiates a trace route to a remote host:
                     + " ms=" + ms +")");
         }
     }
-
-    session.traceRoute ("192.168.10.10", 10, feedCb, doneCb);
+    
+    session.traceRoute ("192.168.10.10", 10, feedCb, doneCb, permittedTimeouts = 3);
 
 # Example Programs
 
