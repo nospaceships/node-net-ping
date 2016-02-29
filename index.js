@@ -462,7 +462,7 @@ Session.prototype.traceRouteCallback = function (trace, req, error, target,
 			return;
 		}
 		
-		if ((error instanceof RequestTimedOutError) && ++trace.timeouts >= 3) {
+		if ((error instanceof RequestTimedOutError) && ++trace.timeouts >= trace.maxHopTimeouts) {
 			trace.doneCallback (new Error ("Too many timeouts"), target);
 			return;
 		}
@@ -485,12 +485,28 @@ Session.prototype.traceRouteCallback = function (trace, req, error, target,
 	}
 }
 
-Session.prototype.traceRoute = function (target, ttl, feedCallback,
+Session.prototype.traceRoute = function (target, ttlOrOptions, feedCallback,
 		doneCallback) {
+	// signature was (target, feedCallback, doneCallback)
 	if (! doneCallback) {
 		doneCallback = feedCallback;
-		feedCallback = ttl;
-		ttl = this.ttl;
+		feedCallback = ttlOrOptions;
+		ttlOrOptions = {ttl: this.ttl};
+	}
+
+	var maxHopTimeouts = 3;
+	var startTtl = 1;
+	var ttl = this.ttl;
+
+	if (typeof ttlOrOptions == "object") {
+		if (ttlOrOptions.ttl)
+			ttl = ttlOrOptions.ttl;
+		if (ttlOrOptions.maxHopTimeouts)
+			maxHopTimeouts = ttlOrOptions.maxHopTimeouts;
+		if (ttlOrOptions.startTtl)
+			startTtl = ttlOrOptions.startTtl;
+	} else {
+		ttl = ttlOrOptions;
 	}
 
 	var id = this._generateId ();
@@ -505,6 +521,7 @@ Session.prototype.traceRoute = function (target, ttl, feedCallback,
 		feedCallback: feedCallback,
 		doneCallback: doneCallback,
 		ttl: ttl,
+		maxHopTimeouts: maxHopTimeouts,
 		timeouts: 0
 	};
 	
@@ -514,7 +531,7 @@ Session.prototype.traceRoute = function (target, ttl, feedCallback,
 		id: id,
 		retries: this.retries,
 		timeout: this.timeout,
-		ttl: 1,
+		ttl: startTtl,
 		target: target
 	};
 	req.callback = me.traceRouteCallback.bind (me, trace, req);
