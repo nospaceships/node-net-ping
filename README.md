@@ -276,23 +276,32 @@ The following example sends a ping request to a remote host:
             console.log (target + ": Alive (ms=" + ms + ")");
     });
 
-## session.traceRoute (target, ttl, feedCallback, doneCallback)
+## session.traceRoute (target, ttlOrOptions, feedCallback, doneCallback)
 
 The `traceRoute()` method provides similar functionality to the trace route
 utility typically provided with most networked operating systems.
 
 The `target` parameter is the dotted quad formatted IP address of the target
 host for IPv4 sessions, or the compressed formatted IP address of the target
-host for IPv6 sessions.  The optional `ttl` parameter specifies the maximum
-number of hops used by the trace route and defaults to the `ttl` options
-parameter as defined by the `createSession()` method.
+host for IPv6 sessions.  The optional `ttlOrOptions` parameter can be either a
+number which specifies the maximum number of hops used by the trace route,
+which defaults to the `ttl` options parameter as defined by the
+`createSession()` method, or an object which can contain the following
+parameters:
+
+ * `ttl` - The maximum number of hops used by the trace route, defaults to the
+   `ttl` options parameter as defined by the `createSession()` method
+ * `maxHopTimeouts` - The maximum number of hop timeouts that should occur,
+   defaults to `3`
+ * `startTtl` - Starting ttl for the trace route, defaults to `1`
 
 Some hosts do not respond to ping requests when the time to live is `0`, that
 is they will not send back an time exceeded error response.  Instead of
 stopping the trace route at the first time out this method will move on to the
-next hop, by increasing the time to live by 1.  It will do this 2 times,
-meaning that a trace route will continue until the target host responds or at
-most 3 request time outs are experienced.
+next hop, by increasing the time to live by 1.  It will do this 2 times by
+default, meaning that a trace route will continue until the target host
+responds or at most 3 request time outs are experienced.  The `maxHopTimeouts`
+option above can be used to control how many hop timeouts can occur.
 
 Each requst is subject to the `retries` and `timeout` option parameters to the
 `createSession()` method.  That is, requests will be retried per hop as per
@@ -459,6 +468,15 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 
  * Wrong callback called in the `traceRoute()` method when a session ID cannot
    be generated
+ * Renamed the optional `ttl` parameter to the `traceRoute()` method to
+   `ttlOrOptions`, and it is still optional
+ * Permit users to control the number of permitted hop timeouts for the
+   `traceRoute()` method, added the `maxHopTimeouts` parameter to the
+   `traceRoute()` methods options
+ * The `traceRoute()` method can start its trace at a higher ttl, added the
+   `startTtl` parameter to the `traceRoute()` methods options
+ * The `_expandConstantObject()` function was declaring variables with global
+   scope
 
 # Roadmap
 
