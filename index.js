@@ -496,7 +496,7 @@ Session.prototype.traceRoute = function (target, ttl, feedCallback,
 	var id = this._generateId ();
 	if (! id) {
 		var sent = new Date ();
-		callback (new Error ("Too many requests outstanding"), target,
+		doneCallback (new Error ("Too many requests outstanding"), target,
 				sent, sent);
 		return this;
 	}

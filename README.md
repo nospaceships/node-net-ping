@@ -455,6 +455,11 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 
  * Host repository on GitHub
 
+## Version 1.2.0 - 29/02/2016
+
+ * Wrong callback called in the `traceRoute()` method when a session ID cannot
+   be generated
+
 # Roadmap
 
 Suggestions and requirements should be sent to <stephen.vickers.sv@gmail.com>.
