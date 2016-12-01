@@ -99,6 +99,10 @@ function Session (options) {
 	this.reqsPending = 0;
 
 	this.getSocket ();
+    if (options && options.dontFrag) {
+        var dontFrag = raw.SocketOption.IP_PMTUDISC_DO;
+        this.getSocket().setOption(raw.SocketLevel.IPPROTO_IP, raw.SocketOption.IP_MTU_DISCOVER, dontFrag);
+    }
 };
 
 util.inherits (Session, events.EventEmitter);

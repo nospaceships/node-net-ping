@@ -153,7 +153,8 @@ The `createSession()` function instantiates and returns an instance of the
         retries: 1,
         sessionId: (process.pid % 65535),
         timeout: 2000,
-        ttl: 128
+        ttl: 128,
+        dontFrag: false
     };
     
     var session = ping.createSession (options);
@@ -176,6 +177,7 @@ items:
  * `timeout` - Number of milliseconds to wait for a response before re-trying
    or failing, defaults to `2000`
  * `ttl` - Value to use for the IP header time to live field, defaults to `128`
+ * `dontFrag` - Boolean, default false. If don't frag bit is set or not
 
 After creating the ping `Session` object an underlying raw socket will be
 created.  If the underlying raw socket cannot be opened an exception with be
