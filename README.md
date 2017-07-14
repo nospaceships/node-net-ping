@@ -247,7 +247,9 @@ other outstanding ping requests.
 
 The `getSocket()` method returns the underlying raw socket used by the session.
 This class is an instance of the `Socket` class exposed by the
-[raw-socket][raw-socket] module.
+[raw-socket][raw-socket] module.  This can be used to modify properties of the
+raw socket, such as specifying which network interface ICMP messages should be
+sent from.
 
 In the following example the network interface from which to send ICMP messages
 is set:
