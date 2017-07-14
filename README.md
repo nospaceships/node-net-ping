@@ -245,9 +245,9 @@ other outstanding ping requests.
 
 ## session.getSocket ()
 
-The `getSocket()` method returns the underlying `Socket` instance used by
-the session.  Refer to the [raw-socket][raw-socket] module for documentation
-related to the `Socket` class.
+The `getSocket()` method returns the underlying raw socket used by the session.
+This class is an instance of the `Socket` class exposed by the
+[raw-socket][raw-socket] module.
 
 In the following example the network interface from which to send ICMP messages
 is set:
@@ -260,6 +260,8 @@ is set:
 	var iface  = Buffer.from("eth0")
 
 	session.getSocket().setOption(level, option, iface, iface.length)
+
+[raw-socket]: https://www.npmjs.com/package/raw-socket "raw-socket"
 
 ## session.pingHost (target, callback)
 
