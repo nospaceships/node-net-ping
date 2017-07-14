@@ -70,6 +70,7 @@ util.inherits (TimeExceededError, Error);
 function Session (options) {
 	this.retries = (options && options.retries != undefined) ? options.retries : 1;
 	this.timeout = (options && options.timeout) ? options.timeout : 2000;
+	this.iface = options.iface;
 
 	this.packetSize = (options && options.packetSize) ? options.packetSize : 16;
 
@@ -82,15 +83,15 @@ function Session (options) {
 			: raw.AddressFamily.IPv4;
 
 	this._debug = (options && options._debug) ? true : false;
-	
+
 	this.defaultTTL = (options && options.ttl) ? options.ttl : 128;
-	
+
 	this.sessionId = (options && options.sessionId)
 			? options.sessionId
 			: process.pid;
-	
+
 	this.sessionId = this.sessionId % 65535;
-	
+
 	this.nextId = 1;
 
 	this.socket = null;
@@ -141,17 +142,26 @@ Session.prototype.getSocket = function () {
 	var me = this;
 	var options = {
 		addressFamily: this.addressFamily,
-		protocol: protocol
+		protocol: protocol,
 	};
 
-	this.socket = raw.createSocket (options);
+	this.socket = raw.createSocket(options);
+	if (this.iface) {
+		options.iface = this.iface;
+		this.socket.setOption(
+			raw.SocketLevel.SOL_SOCKET,
+			raw.SocketOption.SO_BINDTODEVICE,
+			new Buffer(this.iface),
+			this.iface.length
+		)
+	};
 	this.socket.on ("error", this.onSocketError.bind (me));
 	this.socket.on ("close", this.onSocketClose.bind (me));
 	this.socket.on ("message", this.onSocketMessage.bind (me));
-	
+
 	this.ttl = null;
 	this.setTTL (this.defaultTTL);
-	
+
 	return this.socket;
 };
 
@@ -164,7 +174,7 @@ Session.prototype.fromBuffer = function (buffer) {
 
 		if (buffer.length - offset < 8)
 			return;
-		
+
 		// We don't believe any IPv6 options will be passed back to us so we
 		// don't attempt to pass them here.
 
@@ -223,7 +233,7 @@ Session.prototype.fromBuffer = function (buffer) {
 		return;
 
 	buffer[offset + 4] = 0;
-	
+
 	var id = buffer.readUInt16BE (offset + 6);
 	var req = this.reqs[id];
 
@@ -269,9 +279,9 @@ Session.prototype.onSocketMessage = function (buffer, source) {
 			if (req.type == 8)
 				return;
 		}
-		
+
 		this.reqRemove (req.id);
-		
+
 		if (this.addressFamily == raw.AddressFamily.IPv6) {
 			if (req.type == 1) {
 				req.callback (new DestinationUnreachableError (source), req.target,
@@ -387,7 +397,7 @@ Session.prototype.reqQueue = function (req) {
 	this.reqs[req.id] = req;
 	this.reqsPending++;
 	this.send (req);
-	
+
 	return this;
 }
 
@@ -461,7 +471,7 @@ Session.prototype.traceRouteCallback = function (trace, req, error, target,
 			trace.doneCallback (error, target);
 			return;
 		}
-		
+
 		if ((error instanceof RequestTimedOutError) && ++trace.timeouts >= trace.maxHopTimeouts) {
 			trace.doneCallback (new Error ("Too many timeouts"), target);
 			return;
@@ -524,7 +534,7 @@ Session.prototype.traceRoute = function (target, ttlOrOptions, feedCallback,
 		maxHopTimeouts: maxHopTimeouts,
 		timeouts: 0
 	};
-	
+
 	var me = this;
 
 	var req = {
@@ -535,7 +545,7 @@ Session.prototype.traceRoute = function (target, ttlOrOptions, feedCallback,
 		target: target
 	};
 	req.callback = me.traceRouteCallback.bind (me, trace, req);
-	
+
 	this.reqQueue (req);
 
 	return this;

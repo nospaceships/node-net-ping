@@ -149,13 +149,14 @@ The `createSession()` function instantiates and returns an instance of the
     // Default options
     var options = {
         networkProtocol: ping.NetworkProtocol.IPv4,
+        iface: 'wlp2s0',
         packetSize: 16,
         retries: 1,
         sessionId: (process.pid % 65535),
         timeout: 2000,
-        ttl: 128
+        ttl: 128,
     };
-    
+
     var session = ping.createSession (options);
 
 The optional `options` parameter is an object, and can contain the following
@@ -164,6 +165,7 @@ items:
  * `networkProtocol` - Either the constant `ping.NetworkProtocol.IPv4` or the
    constant `ping.NetworkProtocol.IPv6`, defaults to the constant
    `ping.NetworkProtocol.IPv4`
+ * `iface` - Which network interface to be used.
  * `packetSize` - How many bytes each ICMP echo request packet should be,
    defaults to `16`, if the value specified is less that `12` then the value
    `12` will be used (8 bytes are required for the ICMP packet itself, then 4
@@ -233,12 +235,12 @@ successfully responded first, and then closes the session which will clear the
 other outstanding ping requests.
 
     var targets = ["1.1.1.1", "2.2.2.2", "3.3.3.3"];
-    
+
     for (var i = 0; i < targets.length; i++) {
         session.pingHost (targets[i], function (error, target) {
             if (! error) {
                 console.log (target);
-                session.close (); 
+                session.close ();
             }
         });
     }
@@ -420,7 +422,7 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 
  * The `ping.Session.close()` method was not undefining the sessions raw
    socket after closing
- * Return self from the `pingHost()` method to chain method calls 
+ * Return self from the `pingHost()` method to chain method calls
 
 ## Version 1.1.2 - 04/03/2013
 
