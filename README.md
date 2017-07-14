@@ -243,6 +243,24 @@ other outstanding ping requests.
         });
     }
 
+## session.getSocket ()
+
+The `getSocket()` method returns the underlying `Socket` instance used by
+the session.  Refer to the [raw-socket][raw-socket] module for documentation
+related to the `Socket` class.
+
+In the following example the network interface from which to send ICMP messages
+is set:
+
+	var raw = require("raw-socket") // Required for access to constants
+
+	var level  = raw.SocketLevel.SOL_SOCKET
+	var option = raw.SocketOption.SO_BINDTODEVICE
+
+	var iface  = Buffer.from("eth0")
+
+	session.getSocket().setOption(level, option, iface, iface.length)
+
 ## session.pingHost (target, callback)
 
 The `pingHost()` method sends a ping request to a remote host.
@@ -477,6 +495,10 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
    `startTtl` parameter to the `traceRoute()` methods options
  * The `_expandConstantObject()` function was declaring variables with global
    scope
+
+## Version 1.2.1 - 14/07/2017
+
+ * Document the `Socket.getSocket()` method
 
 # Roadmap
 
