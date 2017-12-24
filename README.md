@@ -5,22 +5,28 @@ This module implements ICMP Echo (ping) support for [Node.js][nodejs].
 
 This module is installed using [node package manager (npm)][npm]:
 
-    npm install net-ping
+```bash
+npm install net-ping
+```
 
 It is loaded using the `require()` function:
 
-    var ping = require ("net-ping");
+```javascript
+var ping = require ("net-ping");
+```
 
 A ping session can then be created to ping or trace route to many hosts:
 
-    var session = ping.createSession ();
+```javascript
+var session = ping.createSession ();
 
-    session.pingHost (target, function (error, target) {
-        if (error)
-            console.log (target + ": " + error.toString ());
-        else
-            console.log (target + ": Alive");
-    });
+session.pingHost (target, function (error, target) {
+    if (error)
+        console.log (target + ": " + error.toString ());
+    else
+        console.log (target + ": Alive");
+});
+```
 
 [nodejs]: http://nodejs.org "Node.js"
 [npm]: https://npmjs.org/ "npm"
@@ -42,15 +48,17 @@ to `Request timed out`.
 This makes it easy to determine if a host responded, a time out occurred, or
 whether an error response was received:
 
-    session.pingHost ("1.2.3.4", function (error, target) {
-        if (error)
-            if (error instanceof ping.RequestTimedOutError)
-                console.log (target + ": Not alive");
-            else
-                console.log (target + ": " + error.toString ());
+```javascript
+session.pingHost ("1.2.3.4", function (error, target) {
+    if (error)
+        if (error instanceof ping.RequestTimedOutError)
+            console.log (target + ": Not alive");
         else
-            console.log (target + ": Alive");
-    });
+            console.log (target + ": " + error.toString ());
+    else
+        console.log (target + ": Alive");
+});
+```
 
 In addition to the the `ping.RequestTimedOutError` class, the following errors
 are also exported by this module to wrap ICMP error responses:
@@ -67,10 +75,12 @@ In all cases each class exposes a `source` attribute which will specify the
 host who reported the error (which could be the intended target).  This will
 also be included in the errors `message` attribute, i.e.:
 
-    $ sudo node example/ping-ttl.js 1 192.168.2.10 192.168.2.20 192.168.2.30
-    192.168.2.10: Alive
-    192.168.2.20: TimeExceededError: Time exceeded (source=192.168.1.1)
-    192.168.2.30: Not alive
+```console
+$ sudo node example/ping-ttl.js 1 192.168.2.10 192.168.2.20 192.168.2.30
+192.168.2.10: Alive
+192.168.2.20: TimeExceededError: Time exceeded (source=192.168.1.1)
+192.168.2.30: Not alive
+```
 
 The `Session` class will emit an `error` event for any other error not
 directly associated with a request.  This is typically an instance of the
@@ -86,7 +96,9 @@ an incorrect ICMP checksum.
 This module exposes a `packetSize` option to the `createSession()` method which
 specifies how big ICMP echo request packets should be:
 
-    var session = ping.createSession ({packetSize: 64});
+```javascript
+var session = ping.createSession ({packetSize: 64});
+```
 
 # Round Trip Times
 
@@ -146,17 +158,19 @@ create instances of the `Session` class.
 The `createSession()` function instantiates and returns an instance of the
 `Session` class:
 
-    // Default options
-    var options = {
-        networkProtocol: ping.NetworkProtocol.IPv4,
-        packetSize: 16,
-        retries: 1,
-        sessionId: (process.pid % 65535),
-        timeout: 2000,
-        ttl: 128
-    };
-    
-    var session = ping.createSession (options);
+```javascript
+// Default options
+var options = {
+    networkProtocol: ping.NetworkProtocol.IPv4,
+    packetSize: 16,
+    retries: 1,
+    sessionId: (process.pid % 65535),
+    timeout: 2000,
+    ttl: 128
+};
+
+var session = ping.createSession (options);
+```
 
 The optional `options` parameter is an object, and can contain the following
 items:
@@ -193,9 +207,11 @@ No arguments are passed to the callback.
 The following example prints a message to the console when the underlying raw
 socket is closed:
 
-    session.on ("close", function () {
-        console.log ("socket closed");
-    });
+```javascript
+session.on ("close", function () {
+    console.log ("socket closed");
+});
+```
 
 ## session.on ("error", callback)
 
@@ -210,10 +226,12 @@ The following arguments will be passed to the `callback` function:
 The following example prints a message to the console when an error occurs
 with the underlying raw socket, the session is then closed:
 
-    session.on ("error", function (error) {
-        console.log (error.toString ());
-        session.close ();
-    });
+```javascript
+session.on ("error", function (error) {
+    console.log (error.toString ());
+    session.close ();
+});
+```
 
 ## session.close ()
 
@@ -232,16 +250,18 @@ The following example submits a ping request and prints the target which
 successfully responded first, and then closes the session which will clear the
 other outstanding ping requests.
 
-    var targets = ["1.1.1.1", "2.2.2.2", "3.3.3.3"];
+```javascript
+var targets = ["1.1.1.1", "2.2.2.2", "3.3.3.3"];
     
-    for (var i = 0; i < targets.length; i++) {
-        session.pingHost (targets[i], function (error, target) {
-            if (! error) {
-                console.log (target);
-                session.close (); 
-            }
-        });
-    }
+for (var i = 0; i < targets.length; i++) {
+    session.pingHost (targets[i], function (error, target) {
+        if (! error) {
+            console.log (target);
+            session.close (); 
+        }
+    });
+}
+```
 
 ## session.getSocket ()
 
@@ -254,14 +274,16 @@ sent from.
 In the following example the network interface from which to send ICMP messages
 is set:
 
-	var raw = require("raw-socket") // Required for access to constants
+```javascript
+var raw = require("raw-socket") // Required for access to constants
 
-	var level  = raw.SocketLevel.SOL_SOCKET
-	var option = raw.SocketOption.SO_BINDTODEVICE
+var level  = raw.SocketLevel.SOL_SOCKET
+var option = raw.SocketOption.SO_BINDTODEVICE
 
-	var iface  = Buffer.from("eth0")
+var iface  = Buffer.from("eth0")
 
-	session.getSocket().setOption(level, option, iface, iface.length)
+session.getSocket().setOption(level, option, iface, iface.length)
+```
 
 [raw-socket]: https://www.npmjs.com/package/raw-socket "raw-socket"
 
@@ -288,15 +310,17 @@ following arguments will be passed to the `callback` function:
 
 The following example sends a ping request to a remote host:
 
-    var target = "fe80::a00:27ff:fe2a:3427";
+```javascript
+var target = "fe80::a00:27ff:fe2a:3427";
 
-    session.pingHost (target, function (error, target, sent, rcvd) {
-        var ms = rcvd - sent;
-        if (error)
-            console.log (target + ": " + error.toString ());
-        else
-            console.log (target + ": Alive (ms=" + ms + ")");
-    });
+session.pingHost (target, function (error, target, sent, rcvd) {
+    var ms = rcvd - sent;
+    if (error)
+        console.log (target + ": " + error.toString ());
+    else
+        console.log (target + ": Alive (ms=" + ms + ")");
+});
+```
 
 ## session.traceRoute (target, ttlOrOptions, feedCallback, doneCallback)
 
@@ -360,30 +384,32 @@ will stop and the `doneCallback` will be called.
 
 The following example initiates a trace route to a remote host:
 
-    function doneCb (error, target) {
-        if (error)
-            console.log (target + ": " + error.toString ());
-        else
-            console.log (target + ": Done");
-    }
+```javascript
+function doneCb (error, target) {
+    if (error)
+        console.log (target + ": " + error.toString ());
+    else
+        console.log (target + ": Done");
+}
 
-    function feedCb (error, target, ttl, sent, rcvd) {
-        var ms = rcvd - sent;
-        if (error) {
-            if (error instanceof ping.TimeExceededError) {
-                console.log (target + ": " + error.source + " (ttl="
-                        + ttl + " ms=" + ms +")");
-            } else {
-                console.log (target + ": " + error.toString ()
-                        + " (ttl=" + ttl + " ms=" + ms +")");
-            }
+function feedCb (error, target, ttl, sent, rcvd) {
+    var ms = rcvd - sent;
+    if (error) {
+        if (error instanceof ping.TimeExceededError) {
+            console.log (target + ": " + error.source + " (ttl="
+                    + ttl + " ms=" + ms +")");
         } else {
-            console.log (target + ": " + target + " (ttl=" + ttl
-                    + " ms=" + ms +")");
+            console.log (target + ": " + error.toString ()
+                    + " (ttl=" + ttl + " ms=" + ms +")");
         }
+    } else {
+        console.log (target + ": " + target + " (ttl=" + ttl
+                + " ms=" + ms +")");
     }
+}
 
-    session.traceRoute ("192.168.10.10", 10, feedCb, doneCb);
+session.traceRoute ("192.168.10.10", 10, feedCb, doneCb);
+```
 
 # Example Programs
 
