@@ -1,6 +1,6 @@
 {
   "name": "net-ping",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Ping and trace route to many hosts at once.",
   "main": "index.js",
   "directories": {
@@ -9,15 +9,19 @@
   "dependencies": {
     "raw-socket": "*"
   },
-  "contributors": [ 
+  "contributors": [
     {
       "name": "Stephen Vickers",
-      "email": "stephen.vickers.sv@gmail.com"
-    } 
+      "email": "stephen.vickers@nospaceships.com"
+    },
+    {
+      "name": "NoSpaceships Ltd",
+      "email": "hello@nospaceships.com"
+    }
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/stephenwvickers/node-net-ping.git"
+    "url": "git://github.com/nospaceships/node-net-ping.git"
   },
   "keywords": [
     "echo",
@@ -32,6 +36,6 @@
     "traceroute",
     "tracert"
   ],
-  "author": "Stephen Vickers <stephen.vickers.sv@gmail.com>",
+  "author": "NoSpaceships Ltd <hello@nospaceships.com>",
   "license": "MIT"
 }
