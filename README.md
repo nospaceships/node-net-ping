@@ -389,12 +389,6 @@ The following example initiates a trace route to a remote host:
 
 Example programs are included under the modules `example` directory.
 
-# Bugs & Known Issues
-
-None, yet!
-
-Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
-
 # Changes
 
 ## Version 1.0.0 - 03/02/2013
@@ -508,9 +502,9 @@ Bug reports should be sent to <stephen.vickers.sv@gmail.com>.
 
  * Set NoSpaceships Ltd to be the owner and maintainer
 
-# Roadmap
+## Version 1.2.3 - 07/06/2018
 
-Suggestions and requirements should be sent to <hello@nospaceships.com>.
+ * Remove redundant sections from README.md
 
 # License
 
