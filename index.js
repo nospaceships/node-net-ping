@@ -359,6 +359,13 @@ Session.prototype._generateId = function () {
 }
 
 Session.prototype.pingHost = function (target, callback) {
+	var cb = callback;
+	var p;
+	if (!callback) {
+		var resolveOutside, rejectOutside;
+		p = new Promise((resolve, reject) => ((resolveOutside = resolve) && (rejectOutside = reject)));
+		cb = (error, target) => ((error && rejectOutside(error)) || resolveOutside(target));
+	}
 	var id = this._generateId ();
 	if (! id) {
 		callback (new Error ("Too many requests outstanding"), target);
@@ -369,13 +376,13 @@ Session.prototype.pingHost = function (target, callback) {
 		id: id,
 		retries: this.retries,
 		timeout: this.timeout,
-		callback: callback,
+		callback: cb,
 		target: target
 	};
 
 	this.reqQueue (req);
 
-	return this;
+	return p || this;
 };
 
 Session.prototype.reqQueue = function (req) {
