@@ -268,6 +268,8 @@ Session.prototype.onSocketMessage = function (buffer, source) {
 		} else {
 			if (req.type == 8)
 				return;
+			if (req.target != source)
+				return;
 		}
 		
 		this.reqRemove (req.id);
