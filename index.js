@@ -71,10 +71,10 @@ function Session (options) {
 	this.retries = (options && options.retries != undefined) ? options.retries : 1;
 	this.timeout = (options && options.timeout) ? options.timeout : 2000;
 
-	this.packetSize = (options && options.packetSize) ? options.packetSize : 16;
+	this.packetSize = (options && options.packetSize) ? options.packetSize : 18;
 
-	if (this.packetSize < 12)
-		this.packetSize = 12;
+	if (this.packetSize < 18)
+		this.packetSize = 18;
 
 	this.addressFamily = (options && options.networkProtocol
 				&& options.networkProtocol == NetworkProtocol.IPv6)
@@ -171,18 +171,14 @@ Session.prototype.fromBuffer = function (buffer) {
 		type = buffer.readUInt8 (offset);
 		code = buffer.readUInt8 (offset + 1);
 	} else {
-		// Need at least 20 bytes for an IP header, and it should be IPv4
-		if (buffer.length < 20 || (buffer[0] & 0xf0) != 0x40)
-			return;
+		var ip_icmp_offset;
 
-		// The length of the IPv4 header is in mulitples of double words
-		var ip_length = (buffer[0] & 0x0f) * 4;
-
-		// ICMP header is 8 bytes, we don't care about the data for now
-		if (buffer.length - ip_length < 8)
-			return;
-
-		var ip_icmp_offset = ip_length;
+		//might be using unprivileged datagrams, we don't get an ip header in this case
+		if (buffer.length == this.packetSize) {
+			ip_icmp_offset = 0;
+		} else if (buffer.length > 20 && (buffer[0] & 0xf0) == 0x40){
+			ip_icmp_offset = (buffer[0] & 0x0f) * 4;
+		}
 
 		// ICMP message too short
 		if (buffer.length - ip_icmp_offset < 8)
@@ -219,7 +215,7 @@ Session.prototype.fromBuffer = function (buffer) {
 	}
 
 	// Response is not for a request we generated
-	if (buffer.readUInt16BE (offset + 4) != this.sessionId)
+	if ((buffer.readUInt32BE(offset+8) != this.dataDate)||(buffer.readUInt16BE (offset + 16) != this.sessionId))
 		return;
 
 	buffer[offset + 4] = 0;
@@ -444,6 +440,10 @@ Session.prototype.toBuffer = function (req) {
 	buffer.writeUInt16BE (this.sessionId, 4);
 	buffer.writeUInt16BE (req.id, 6);
 
+	this.dataDate = Math.floor(new Date().valueOf()/1000);
+	buffer.writeUInt32BE (this.dataDate, 8)    //data_time
+	buffer.writeUInt32BE (0, 12);
+	buffer.writeUInt16BE (this.sessionId, 16); //session id again
 	raw.writeChecksum (buffer, 2, raw.createChecksum (buffer));
 
 	return buffer;
