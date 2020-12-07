@@ -123,7 +123,7 @@ Session.prototype._debugResponse = function (source, buffer) {
 }
 
 Session.prototype.flush = function (error) {
-	for (id in this.reqs) {
+	for (var id in this.reqs) {
 		var req = this.reqRemove (id);
 		var sent = req.sent ? req.sent : new Date ();
 		req.callback (error, req.target, sent, new Date ());
