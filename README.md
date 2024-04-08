@@ -506,6 +506,10 @@ Example programs are included under the modules `example` directory.
 
  * Remove redundant sections from README.md
 
+## Version 1.2.4 - 08/04/2024
+
+ * Fix deprecation warning for `new Buffer()`
+
 # License
 
 Copyright (c) 2018 NoSpaceships Ltd <hello@nospaceships.com>
