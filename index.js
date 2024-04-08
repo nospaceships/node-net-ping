@@ -429,7 +429,7 @@ Session.prototype.setTTL = function (ttl) {
 }
 
 Session.prototype.toBuffer = function (req) {
-	var buffer = new Buffer (this.packetSize);
+	var buffer = Buffer.alloc(this.packetSize);
 
 	// Since our buffer represents real memory we should initialise it to
 	// prevent its previous contents from leaking to the network.
